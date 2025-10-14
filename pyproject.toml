@@ -20,6 +20,8 @@ dependencies = [
     "markdown-it-py[plugins]>=4.0.0",
     "markdownify>=1.2.0",
     "mkdocs",
+    "mkdocs-material>=9.6.21",
+    "mkdocstrings[python]>=0.30.1",
     "pandas>=2.3.3",
     "pip",
     "plotly>=6.3.1",

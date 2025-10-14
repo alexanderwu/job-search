@@ -1,3 +1,4 @@
+.PHONY: sync clean lint format test
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
@@ -10,52 +11,35 @@ PYTHON_INTERPRETER = python
 # COMMANDS                                                                      #
 #################################################################################
 
-
 ## Install Python dependencies
-.PHONY: requirements
-requirements:
-	uv sync
-	
-
-
+sync:
+	uv pip compile pyproject.toml -o requirements.txt
+	uv pip sync requirements.txt
+	uv pip install -e .
 
 ## Delete all compiled Python files
-.PHONY: clean
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
-
 ## Lint using ruff (use `make format` to do formatting)
-.PHONY: lint
 lint:
 	ruff format --check
 	ruff check
 
 ## Format source code with ruff
-.PHONY: format
 format:
 	ruff check --fix
 	ruff format
 
-
-
-## Run tests
-.PHONY: test
 test:
 	python -m pytest tests
 
+docs:  ## build the static version of the docs
+	cd docs && mkdocs build
 
-## Set up Python interpreter environment
-.PHONY: create_environment
-create_environment:
-	uv venv --python $(PYTHON_VERSION)
-	@echo ">>> New uv virtual environment created. Activate with:"
-	@echo ">>> Windows: .\\\\.venv\\\\Scripts\\\\activate"
-	@echo ">>> Unix/macOS: source ./.venv/bin/activate"
-	
-
-
+docs-serve: ## serve documentation to livereload while you work
+	cd docs && mkdocs serve
 
 #################################################################################
 # PROJECT RULES                                                                 #
