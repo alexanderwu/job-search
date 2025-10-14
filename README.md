@@ -57,5 +57,10 @@ Job search tools
     └── plots.py                <- Code to create visualizations
 ```
 
---------
+## Getting Started
 
+```sh
+uv add --no-sync docx2pdf google ipykernel ipywidgets lxml markdown markdownify pandas plotly polars pyarrow python pyyaml rich scipy seaborn selenium streamlit tqdm webdriver git+https://github.com/alexanderwu/aw.git
+uv pip compile pyproject.toml -o requirements.txt
+uv pip sync requirements.txt
+```
