@@ -1,6 +1,8 @@
+from pathlib import Path
 import importlib
 import sys
 
+import pandas as pd
 from IPython.display import HTML
 
 
@@ -27,3 +29,32 @@ def jupyter_css_style():
         </style>
     """)
     return css_style
+
+
+def display_code(code: str, language: str = 'python'):
+    from IPython.display import display, Markdown
+    markdown_code = f'```{language}\n{code}\n```'
+    display(Markdown(markdown_code))
+
+
+def now(time=True, file=True) -> str:
+    from datetime import datetime
+    datetime_now = datetime.now()
+    if time:
+        if file:
+            return datetime_now.strftime(r"%Y-%m-%d_%H%M%S")
+        return datetime_now.strftime(r"%#I:%M%p").lower()
+    else:
+        if file:
+            return datetime_now.strftime(r"%Y-%m-%d")
+        return datetime_now.strftime(r"%#m/%#d/%y (%A)")
+
+def path_names(path: Path, glob='*', stem=True) -> pd.Series:
+    if stem:
+        return pd.Series([p.stem for p in path.glob(glob)])
+    return pd.Series([p.name for p in path.glob(glob)])
+
+
+def open(path):
+    import subprocess
+    subprocess.Popen(f'explorer "{path}"')

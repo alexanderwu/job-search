@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "job_search"
-version = "0.0.1"
+version = "0.1.0"
 description = "Job search tools"
 authors = [{ name = "Alexander Wu" }]
 
@@ -13,6 +13,7 @@ classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
     "aw",
     "docx2pdf>=0.1.8",
+    "fastapi[standard]>=0.121.0",
     "google-genai>=1.43.0",
     "ipykernel>=7.0.0",
     "ipywidgets>=8.1.7",

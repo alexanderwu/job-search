@@ -1,10 +1,23 @@
 # job_search
 
-<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
-    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
-</a>
-
 Job search tools
+
+## Goals
+
+* Discover and recommend suitable jobs based on resume
+    * Highlight keywords from job and match. ATS matching score
+        * Industry and domain knowledge
+        * Soft skills and leadership
+        * Technical skills
+        * Activities and tasks
+    * Resume crafting
+        * Take notes on job postings
+    * Annotating keywords
+        * (Options: Doccano, DataSaur, Label Studio)
+* Understand job market and what skills and experiences are emphasized. What are trending industries and technologies.
+* Summarize basic company info to help prepare for interviews
+    * Research and providing context for LLMs
+* Web scraping for recent jobs
 
 ## Project Organization
 
@@ -66,8 +79,42 @@ make sync
 OR
 
 ```sh
-uv add --no-sync docx2pdf google ipykernel ipywidgets lxml markdown markdownify pandas plotly polars pyarrow python pyyaml rich scipy seaborn selenium streamlit tqdm webdriver git+https://github.com/alexanderwu/aw.git
+# uv add --no-sync docx2pdf google ipykernel ipywidgets lxml markdown markdownify pandas plotly polars pyarrow python pyyaml rich scipy seaborn selenium streamlit tqdm webdriver git+https://github.com/alexanderwu/aw.git
+uv add --no-sync docx2pdf ipykernel ipywidgets lxml markdown markdownify pandas plotly polars pyarrow python pyyaml rich scipy seaborn selenium streamlit tqdm webdriver git+https://github.com/alexanderwu/aw.git
 uv pip compile pyproject.toml -o requirements.txt
 uv pip sync requirements.txt
 uv pip install -e .
+```
+
+## Make dataset
+
+```py
+def main0(path_query: Path | str, overwrite=False) -> Path:
+    """
+    Get data/ds.html to prepare job cards
+    """
+    query_url = load_query_url(path_query)
+    query_dict = parse_query_url(query_url)
+    scroll_bottom(driver)
+
+def main1(P_save: Path | str):
+    """
+    Scrape job urls and descriptions
+    """
+    df = load_jdf(P_save)
+    url_get_content = requests_get(url).content
+    job_description = extract_job_description(root)
+        _html_string = decode_element(_elem, verbose=False)
+    
+```
+
+## Research
+
+https://ai.gopubby.com/comparing-open-source-data-annotation-tools-customised-model-and-llm-api-integration-for-e59a51efe056
+* Using Label Studio’s community version for model-assisted annotation is a powerful but non-trivial solution that requires some customization and technical expertise, especially when integrating custom models or LLM APIs.
+* Argilla is mainly just an interface and API that can be plugged into any other ML workflow.
+* 11:51pm: Getting started
+
+```sh
+pup install label-studio
 ```

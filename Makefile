@@ -41,6 +41,12 @@ docs:  ## build the static version of the docs
 docs-serve: ## serve documentation to livereload while you work
 	cd docs && mkdocs serve
 
+dataset:
+	python job_search/dataset.py
+
+serve:
+	fastapi dev job_search/backend.py
+
 #################################################################################
 # PROJECT RULES                                                                 #
 #################################################################################
