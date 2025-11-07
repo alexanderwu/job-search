@@ -606,13 +606,13 @@ if __name__ == "__main__":
         P_QUERIES / ('Healthcare.txt'),
         P_QUERIES / ('SF.txt'),
         P_QUERIES / ('DS_Remote.txt'),
-        # P_QUERIES / ('DS_Socal.txt'),
-        # P_QUERIES / ('DS_Seattle.txt'),
-        # P_QUERIES / ('DS_NY.txt'),
-        # P_QUERIES / ('DS_Midwest.txt'),
-        # P_QUERIES / ('DS_DC.txt'),
-        # P_QUERIES / ('SW.txt'),
-        # P_QUERIES / ('SW_Remote.txt'),
+        P_QUERIES / ('DS_Socal.txt'),
+        P_QUERIES / ('DS_Seattle.txt'),
+        P_QUERIES / ('DS_NY.txt'),
+        P_QUERIES / ('DS_Midwest.txt'),
+        P_QUERIES / ('DS_DC.txt'),
+        P_QUERIES / ('SW.txt'),
+        P_QUERIES / ('SW_Remote.txt'),
     ]
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False)  # Path('data/2025-10-11/DS.html')

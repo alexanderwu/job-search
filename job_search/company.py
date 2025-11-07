@@ -102,6 +102,9 @@ def viewhash(hash: str):
     with open(P_url, encoding='utf-8') as f:
         html_source = f.read()
     root = lxml.html.fromstring(html_source)
+    _next_data_list = root.xpath("//script[@id='__NEXT_DATA__']")
+    if len(_next_data_list) == 0:
+        return {}
     _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
     next_data_dict = json.loads(_next_data.text_content())
     # next_data_job = next_data_dict['props']['pageProps']['job']
@@ -167,16 +170,17 @@ def path_names(path: Path, glob='*', stem=True) -> pd.Series:
         return pd.Series([p.stem for p in path.glob(glob)])
     return pd.Series([p.name for p in path.glob(glob)])
 
-@cache
+# @cache
 def path_df(path: Path, glob='*') -> pd.Series:
     import os
     from datetime import datetime
     pdf = pd.DataFrame({
         'name': pd.Series([p.name for p in path.glob(glob)]),
         'hash': pd.Series([p.stem.rsplit('.', 1)[-1] for p in path.glob(glob)]),
-        'ctime': pd.Series([datetime.fromtimestamp(os.stat(p).st_birthtime) for p in path.glob(glob)]),
+        # 'ctime': pd.Series([datetime.fromtimestamp(os.stat(p).st_birthtime) for p in path.glob(glob)]),
+        'ctime': pd.Series([datetime.fromtimestamp(os.stat(p).st_ctime) for p in path.glob(glob)]),
         'stsize': pd.Series([os.stat(p).st_size for p in path.glob(glob)]),
-        'path': [p for p in path.glob(glob)],
+        # 'path': [p for p in path.glob(glob)],
     })
     return pdf
 

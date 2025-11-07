@@ -58,3 +58,15 @@ def path_names(path: Path, glob='*', stem=True) -> pd.Series:
 def open(path):
     import subprocess
     subprocess.Popen(f'explorer "{path}"')
+
+
+def is_wsl() -> bool:
+    """
+    Checks if the current Python script is running within WSL.
+    """
+    import os
+    if os.path.exists("/proc/version"):
+        with open("/proc/version", 'r') as f:
+            version_info = f.read()
+        return "Microsoft" in version_info
+    return False
