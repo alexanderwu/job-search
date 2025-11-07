@@ -30,7 +30,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
-from utils import is_wsl
+from job_search.utils import is_wsl
 from job_search.config import (
     HIRING_CAFE_HTTPS,
     VIEW_JOB_HTTPS,
