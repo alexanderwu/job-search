@@ -57,17 +57,18 @@ SCROLL_PAUSE_TIME = 0.5
 WAIT_TIME = 5
 
 
-def init_driver():
+def init_driver(headless=True):
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.chrome.service import Service
-    if is_wsl():
-        chrome_options = Options()
+    chrome_options = Options()
+    chrome_options.add_argument("--no-sandbox")
+    if headless:
         chrome_options.add_argument("--headless")  # Ensure GUI is off
-        chrome_options.add_argument("--no-sandbox")
+    if is_wsl():
         webdriver_service = Service(f"/usr/lib/chromium-browser/chromedriver")
         driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
     else:
-        driver = init_driver()
+        driver = webdriver.Chrome(options=chrome_options)
     return driver
 
 
