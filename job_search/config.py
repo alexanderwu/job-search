@@ -31,6 +31,7 @@ P_QUERIES = P_DATA / 'queries'
 P_CACHE = P_DATA / 'cache'
 P_JOBS = P_DATA / 'cache/jobs'
 P_URLS = P_DATA / 'cache/urls'
+P_DICT = P_DATA / 'cache/dicts'
 P_COMPANY_URLS = P_DATA / 'cache/company_urls'
 
 _date = now(time=False)

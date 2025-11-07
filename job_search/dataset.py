@@ -41,6 +41,7 @@ from job_search.config import (
     P_CACHE,
     P_JOBS,
     P_URLS,
+    P_DICT,
     P_COMPANY_URLS,
     STEM,
     P_DATE,
@@ -136,6 +137,7 @@ def main1(P_save: Path | str):
     """
     Scrape job urls and descriptions
     """
+    import pickle
     log(P_save).info(f"Scraping initial job descriptions and metadata from {P_save}...")
 
     df = load_jdf(P_save)
@@ -148,20 +150,32 @@ def main1(P_save: Path | str):
 
     P_URLS.mkdir(exist_ok=True)
     P_JOBS.mkdir(exist_ok=True)
+    P_DICT.mkdir(exist_ok=True)
     for url in (pbar := tqdm(VIEW_JOB_HTTPS + df['hash'], 1)):
         hash = url.split('/')[-1]
         identifier = hash2identifier_dict[hash]
         pbar.set_description(f"{identifier}")
         P_url = P_URLS / f"{identifier}.html"
         P_md = P_JOBS / f"{identifier}.md"
-        if P_md.exists():
+        P_dict = P_DICT / f"{identifier}.html.pkl"
+        # if P_md.exists():
+        if P_dict.exists():
             continue
-        if not P_url.exists():
+        if not P_dict.exists():
             # url_get_content = requests_get(url).content
             url_get_content = selenium_get(url)
             time.sleep(random.randint(0,2))
             with open(P_url, 'w', encoding='utf-8') as f:
                 f.write(url_get_content)
+
+            root = lxml.html.fromstring(url_get_content)
+            _next_data_list = root.xpath("//script[@id='__NEXT_DATA__']")
+            if len(_next_data_list) == 0:
+                return {}
+            _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
+            next_data_dict = json.loads(_next_data.text_content())
+            with open(P_dict, 'wb') as f:
+                pickle.dump(next_data_dict, f)
         else:
             with open(P_url, encoding='utf-8') as f:
                 url_get_content = f.read()
