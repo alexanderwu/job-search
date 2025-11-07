@@ -30,7 +30,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
-# from utils import now
+from utils import is_wsl
 from job_search.config import (
     HIRING_CAFE_HTTPS,
     VIEW_JOB_HTTPS,
@@ -54,6 +54,20 @@ from job_search.config import (
 # Selenium options
 SCROLL_PAUSE_TIME = 0.5
 WAIT_TIME = 5
+
+
+def init_driver():
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.chrome.service import Service
+    if is_wsl():
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")  # Ensure GUI is off
+        chrome_options.add_argument("--no-sandbox")
+        webdriver_service = Service(f"/usr/lib/chromium-browser/chromedriver")
+        driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
+    else:
+        driver = init_driver()
+    return driver
 
 
 ################################################################################
@@ -95,7 +109,7 @@ def main0(path_query: Path | str, overwrite=False) -> Path:
         {_commitment_types}
     """)
     log(P_save).info(_query_str)
-    driver = webdriver.Chrome()
+    driver = init_driver()
     driver.maximize_window()
     driver.get(query_url)
     wait = WebDriverWait(driver, 10)
@@ -198,7 +212,7 @@ def main2(P_save: Path | str):
 
     log(P_save).info(f'Downloading {len(company_url2_list)} companies...')
 
-    driver = webdriver.Chrome()
+    driver = init_driver()
     wait = WebDriverWait(driver, 10)
 
     for company, url2 in (pbar := tqdm(company_url2_list)):
@@ -398,7 +412,7 @@ def requests_get(url):
 
 @cache
 def selenium_get(url):
-    driver = webdriver.Chrome()
+    driver = init_driver()
     wait = WebDriverWait(driver, 2)
     driver.get(url)
     # scroll_bottom(driver, wait_time=1)

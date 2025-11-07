@@ -1,9 +1,12 @@
 from pathlib import Path
-from job_search.utils import now
+from job_search.utils import now, is_wsl
+
 
 P_ROOT = Path(__file__).parents[1]
-# P_DATA = P_ROOT.parent / 'Companies/data'
-P_DATA = Path('/mnt/c/Users/alexa/Dev/Companies/data')
+if is_wsl():
+    P_DATA = Path('/mnt/c/Users/alexa/Dev/Companies/data')
+else:
+    P_DATA = P_ROOT.parent / 'Companies/data'
 P_RAW = P_DATA / 'raw'
 P_EXTERNAL = P_DATA / 'external'
 P_PROCESSED = P_DATA / 'processed'
