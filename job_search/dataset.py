@@ -30,7 +30,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
-from job_search.utils import is_wsl
+from job_search.utils import is_running_wsl
 from job_search.config import (
     HIRING_CAFE_HTTPS,
     VIEW_JOB_HTTPS,
@@ -64,7 +64,7 @@ def init_driver(headless=True):
     chrome_options.add_argument("--no-sandbox")
     if headless:
         chrome_options.add_argument("--headless")  # Ensure GUI is off
-    if is_wsl():
+    if is_running_wsl():
         webdriver_service = Service(f"/usr/lib/chromium-browser/chromedriver")
         driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
     else:
@@ -111,7 +111,7 @@ def main0(path_query: Path | str, overwrite=False) -> Path:
         {_commitment_types}
     """)
     log(P_save).info(_query_str)
-    driver = init_driver()
+    driver = init_driver(headless=False)
     driver.maximize_window()
     driver.get(query_url)
     wait = WebDriverWait(driver, 10)
@@ -635,13 +635,13 @@ if __name__ == "__main__":
         P_QUERIES / ('Healthcare.txt'),
         P_QUERIES / ('SF.txt'),
         P_QUERIES / ('DS_Remote.txt'),
-        P_QUERIES / ('DS_Socal.txt'),
-        P_QUERIES / ('DS_Seattle.txt'),
-        P_QUERIES / ('DS_NY.txt'),
-        P_QUERIES / ('DS_Midwest.txt'),
-        P_QUERIES / ('DS_DC.txt'),
-        P_QUERIES / ('SW.txt'),
-        P_QUERIES / ('SW_Remote.txt'),
+        # P_QUERIES / ('DS_Socal.txt'),
+        # P_QUERIES / ('DS_Seattle.txt'),
+        # P_QUERIES / ('DS_NY.txt'),
+        # P_QUERIES / ('DS_Midwest.txt'),
+        # P_QUERIES / ('DS_DC.txt'),
+        # P_QUERIES / ('SW.txt'),
+        # P_QUERIES / ('SW_Remote.txt'),
     ]
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False)  # Path('data/2025-10-11/DS.html')

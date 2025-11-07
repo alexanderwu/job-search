@@ -1,6 +1,7 @@
-from pathlib import Path
+import os
 import importlib
 import sys
+from pathlib import Path
 
 import pandas as pd
 from IPython.display import HTML
@@ -60,13 +61,13 @@ def open(path):
     subprocess.Popen(f'explorer "{path}"')
 
 
-def is_wsl() -> bool:
+def is_running_wsl() -> bool:
     """
     Checks if the current Python script is running within WSL.
     """
-    import os
-    if os.path.exists("/proc/version"):
-        with open("/proc/version", 'r') as f:
-            version_info = f.read()
-        return "Microsoft" in version_info
-    return False
+    # if os.path.exists("/proc/version"):
+    #     with open("/proc/version", mode='r') as f:
+    #         version_info = f.read()
+    #     return "Microsoft" in version_info
+    # return False
+    return os.path.exists("/proc/version")

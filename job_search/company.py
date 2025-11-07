@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
-import logging
-import random
-import re
-import time
-import urllib
-from functools import cache
-from functools import reduce
-from itertools import chain
+import json
+import pickle
+from functools import cache, reduce
+from os.path import getctime
 from pathlib import Path
-
 
 import lxml.html
 import pandas as pd
@@ -18,11 +13,12 @@ from markdown_it import MarkdownIt
 from mdit_py_plugins.front_matter import front_matter_plugin
 from mdit_py_plugins.wordcount import wordcount_plugin
 from job_search.utils import now, reload
-from job_search.dataset import (_feature_engineering, load_jdf, load_cdf)
+from job_search.dataset import load_jdf, load_cdf
 from job_search.config import (
     VIEW_JOB_HTTPS,
     P_JOBS,
     P_URLS,
+    P_DICT,
     P_DATA,
     QUERY_LIST,
     P_STEM,
@@ -96,8 +92,6 @@ def viewjob(hash: str) -> str:
 
 @cache
 def viewhash(hash: str):
-    import json
-    from os.path import getctime
     P_url = max([p for p in P_URLS.glob(f'*{hash}.html')], key=getctime)
     with open(P_url, encoding='utf-8') as f:
         html_source = f.read()
@@ -105,11 +99,38 @@ def viewhash(hash: str):
     _next_data_list = root.xpath("//script[@id='__NEXT_DATA__']")
     if len(_next_data_list) == 0:
         return {}
-    _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
+    _next_data = _next_data_list[0]
     next_data_dict = json.loads(_next_data.text_content())
     # next_data_job = next_data_dict['props']['pageProps']['job']
     # return next_data_job
     return next_data_dict
+
+def hash2identifier(hash):
+    P_url = max([p for p in P_URLS.glob(f'*{hash}.html')], key=getctime)
+    identifier = P_url.stem
+    return identifier
+
+@cache
+def hash2dict(hash, path=False, verbose=True):
+    P_url = max([p for p in P_URLS.glob(f'*{hash}.html')], key=getctime)
+    if path:
+        return P_url
+    P_dict = P_DICT / f'{P_url.name}.pkl'
+    if not P_dict.exists():
+        with open(P_url, encoding='utf-8') as f:
+            html_source = f.read()
+        root = lxml.html.fromstring(html_source)
+        _next_data_list = root.xpath("//script[@id='__NEXT_DATA__']")
+        if len(_next_data_list) == 0:
+            return {}
+        _next_data = _next_data_list[0]
+        next_data_dict = json.loads(_next_data.text_content())
+        if verbose:
+            print(f'Writing to {P_dict}')
+        with open(P_dict, 'wb') as f:
+            pickle.dump(next_data_dict, f)
+    with open(P_dict, 'rb') as f:
+        return pickle.load(f)
 
 
 def word_count(path_md: Path | str):
