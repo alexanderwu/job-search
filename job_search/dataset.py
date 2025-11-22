@@ -2,8 +2,10 @@
 Download job description
 """
 #!/usr/bin/env python3
-import logging
 import json
+import logging
+import os
+import pickle
 import random
 import re
 import time
@@ -42,7 +44,7 @@ from job_search.config import (
     P_JOBS,
     P_URLS,
     P_DICT,
-    P_COMPANY_URLS,
+    P_ALL_COMPANY_URLS,
     STEM,
     P_DATE,
     P_STEM,
@@ -54,7 +56,7 @@ from job_search.config import (
 
 # Selenium options
 SCROLL_PAUSE_TIME = 0.5
-WAIT_TIME = 5
+WAIT_TIME = 10
 
 
 def init_driver(headless=True):
@@ -111,6 +113,7 @@ def main0(path_query: Path | str, overwrite=False) -> Path:
         {_commitment_types}
     """)
     log(P_save).info(_query_str)
+
     driver = init_driver(headless=False)
     driver.maximize_window()
     driver.get(query_url)
@@ -129,8 +132,13 @@ def main0(path_query: Path | str, overwrite=False) -> Path:
     _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
     N = len(lxml.html.fromstring(scroll_jobs_outer_html).xpath(_CLASS))
     log(P_save).info(f"Saving {P_save} (N={N})...")
+
+    _title = f"{P_save.stem} (N={N})"
+    _data = dict(body=scroll_jobs_outer_html, title=_title, description=query_url)
+    scroll_jobs_html = render_template(**_data).replace('</source>', '')
+
     with open(P_save, 'w', encoding='utf-8') as f:
-        f.write(scroll_jobs_outer_html)
+        f.write(scroll_jobs_html)
 
     return P_save
 
@@ -138,21 +146,25 @@ def main1(P_save: Path | str):
     """
     Scrape job urls and descriptions
     """
-    import pickle
     log(P_save).info(f"Scraping initial job descriptions and metadata from {P_save}...")
 
     df = load_jdf(P_save)
-    df_identifier = (df['position'] + '.' + df['hash'])
-    P_jdf = P_save.parent / f"{P_save.stem}_identifiers.txt"
-    df_identifier.to_csv(P_jdf, index=False, header=None)
-    log(P_save).info(f"Saved {P_jdf} (N={len(df_identifier)})...")
+    _save_dicts(df)
 
-    hash2identifier_dict = dict(zip(df['hash'], df_identifier))
 
+def _save_dicts(df, P_save=None):
     P_URLS.mkdir(exist_ok=True)
     P_JOBS.mkdir(exist_ok=True)
     P_DICT.mkdir(exist_ok=True)
-    for url in (pbar := tqdm(VIEW_JOB_HTTPS + df['hash'], 1)):
+
+    df_identifier = (df['position'] + '.' + df['hash'])
+    if P_save:
+        P_jdf = P_save.parent / f"{P_save.stem}_identifiers.txt"
+        df_identifier.to_csv(P_jdf, index=False, header=None)
+        log(P_save).info(f"Saved {P_jdf} (N={len(df)})...")
+    hash2identifier_dict = dict(zip(df['hash'], df_identifier))
+
+    for url in (pbar := tqdm(VIEW_JOB_HTTPS + df['hash'])):
         hash = url.split('/')[-1]
         identifier = hash2identifier_dict[hash]
         pbar.set_description(f"{identifier}")
@@ -172,9 +184,10 @@ def main1(P_save: Path | str):
             root = lxml.html.fromstring(url_get_content)
             _next_data_list = root.xpath("//script[@id='__NEXT_DATA__']")
             if len(_next_data_list) == 0:
-                return {}
-            _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
-            next_data_dict = json.loads(_next_data.text_content())
+                next_data_dict = {}
+            else:
+                _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
+                next_data_dict = json.loads(_next_data.text_content())
             with open(P_dict, 'wb') as f:
                 pickle.dump(next_data_dict, f)
         else:
@@ -193,10 +206,12 @@ def main1(P_save: Path | str):
             with open(P_md, 'w', encoding='utf-8') as f:
                 f.write(job_description)
 
+
 def main2(P_save: Path | str):
     """
     Get outerHTML of job cards for companies with multiple job listings
     """
+    from datetime import datetime
     from selenium import webdriver
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
@@ -209,39 +224,46 @@ def main2(P_save: Path | str):
 
     df = load_jdf(P_save)
     df2 = df.query('_len > 1').reset_index(drop=True)
-    # df2_company = df2['company'].str.replace(r'[/|\\*]', '_', regex=True)
     df2_company = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
-    company_url2_list = list(zip(df2_company, df2['url2']))
+    company_chash_list = list(zip(df2_company, df2['chash']))
 
-    if len(company_url2_list) == 0:
+    if len(company_chash_list) == 0:
         log(P_save).warning('No companies with multiple listings... ')
         return
 
-    # P_companies = P_DATA / (f'company_urls')
     P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
     P_companies.mkdir(parents=True, exist_ok=True)
-    # if all([P_DATA / (f'cache/company_urls/{_comp}.html').exists() for _comp in df2_company]):
-    if all([(P_companies / f"{_comp}.html").exists() for _comp in df2_company]):
-        log(P_save).info('All downloaded...')
-        return
+    P_ALL_COMPANY_URLS = P_companies.parent / "ALL_company_urls"
+    P_ALL_COMPANY_URLS.mkdir(parents=True, exist_ok=True)
+    # if all([(P_ALL_COMPANY_URLS / f"{_comp}.html").exists() for _comp in df2_company]):
+    #     log(P_save).info('All downloaded...')
+    #     return
 
-    log(P_save).info(f'Downloading {len(company_url2_list)} companies...')
+    log(P_save).info(f'Downloading {len(company_chash_list)} companies...')
 
     driver = init_driver()
     wait = WebDriverWait(driver, 10)
 
-    for company, url2 in (pbar := tqdm(company_url2_list)):
+    P_ALL = load_query_url(P_QUERIES / 'ALL.txt')
+    ALL_SEARCH_STATE = P_ALL.split('?', maxsplit=1)[1]
+    for company, chash in (pbar := tqdm(company_chash_list)):
         pbar.set_description(f"{(company)}")
-        # P_URL = Path(f'company_urls/{company}.html')
-        P_URL = P_companies / f"{company}.html"
-        if P_URL.exists():
-            continue
+        P_company_url = P_ALL_COMPANY_URLS / f"{company}.html"
+        # Skip if file exists and recently downloaded
+        if P_company_url.exists():
+            # _rand_refresh = random.randint(2,7)
+            # _rand_refresh = random.randint(1,2)
+            _rand_refresh = 1
+            if (datetime.now() - datetime.fromtimestamp(P_company_url.stat().st_mtime)).days < _rand_refresh:
+                continue
 
-        company_url = HIRING_CAFE_HTTPS + url2
+        company_url = f"{HIRING_CAFE_HTTPS}/?company={chash}&{ALL_SEARCH_STATE}"
         _GRID_XPATH = "//div[@class='my-masonry-grid']"
         driver.get(company_url)
 
-        scroll_bottom(driver, wait_time=1)
+        _rand_wait_time = random.randint(2,3)
+        # _rand_wait_time = random.randint(4,6)
+        scroll_bottom(driver, wait_time=_rand_wait_time)
 
         try:
             job_cards = wait.until(EC.visibility_of_element_located((By.XPATH, _GRID_XPATH)))
@@ -249,48 +271,35 @@ def main2(P_save: Path | str):
         except TimeoutException:
             job_cards_outer_html = ''
 
-        with open(P_URL, 'w', encoding='utf-8') as f:
-            f.write(job_cards_outer_html)
-        time.sleep(random.randint(1,3))
+        _data = dict(body=job_cards_outer_html, title=company, description=company_url)
+        output_html = render_template(**_data)
+
+        with open(P_company_url, 'w', encoding='utf-8') as f:
+            f.write(output_html)
+
 
 def main3(P_save: Path | str) -> pd.DataFrame:
     """Scrape other job urls and descriptions from companies with multiple job postings"""
     log(P_save).info(f"Scraping the rest of job descriptions and metadata from {P_save}...")
-    P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
+    # P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
+    P_companies = P_save.parents[3] / f"cache/ALL_company_urls"
 
-    cdf = load_cdf(P_companies, verbose=True)
-    hash2identifier_dict = dict(zip(cdf['hash'], cdf['position'] + '.' + cdf['hash']))
+    df = load_jdf(P_save)
+    df2 = df.query('_len > 1').reset_index(drop=True)
+    _df2_companies = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
+    cdf2_dict = {}
+    for company in _df2_companies:
+        P_company = P_ALL_COMPANY_URLS / f"{company}.html"
+        with open(P_company, 'r', encoding='utf-8') as f:
+            html_string = f.read()
 
-    for url in (pbar := tqdm(VIEW_JOB_HTTPS + cdf['hash'], 1)):
-        hash = url.split('/')[-1]
-        identifier = hash2identifier_dict[hash]
-        pbar.set_description(f"{identifier}")
-        P_URL = P_DATA / (f'cache/urls/{identifier}.html')
-        P_MD = P_DATA / (f'cache/jobs/{identifier}.md')
-        if P_MD.exists():
-            continue
-        if not P_URL.exists():
-            # url_get_content = requests_get(url).content
-            # time.sleep(random.randint(1,3))
-            url_get_content = selenium_get(url)
-            time.sleep(random.randint(0, 2))
-            with open(P_URL, 'w', encoding='utf-8') as f:
-                f.write(url_get_content)
-        else:
-            with open(P_URL, encoding='utf-8') as f:
-                url_get_content = f.read()
-            if url_get_content == '':
-                print(P_URL)
-                continue
-        root = lxml.html.fromstring(url_get_content)
-        job_description = extract_job_description(root)
-        if len(job_description) == 0:
-            # P_URL.unlink()
-            print(P_URL)
-            continue
-        else:
-            with open(P_MD, 'w', encoding='utf-8') as f:
-                f.write(job_description)
+        company_df = load_jdf(html_string)
+        # _save_dicts(company_df, P_companies)
+        cdf2_dict[company] = company_df
+    cdf2 = pd.concat(cdf2_dict)
+    # cdf2 = load_cdf(P_companies, verbose=True)[lambda x: x['company'].isin(_df2_companies)]
+    log(P_save).info(f"Scraping company jobs (N={len(cdf2)}).")
+    _save_dicts(cdf2, P_companies)
 
     log(P_save).info("Done.")
 
@@ -426,12 +435,12 @@ def requests_get(url):
 
 
 @cache
-def selenium_get(url):
+def selenium_get(url, wait_time=2):
     driver = init_driver()
     wait = WebDriverWait(driver, 2)
     driver.get(url)
     # scroll_bottom(driver, wait_time=1)
-    scroll_bottom(driver, wait_time=2)
+    scroll_bottom(driver, wait_time=wait_time)
     try:
         wait.until(EC.visibility_of_element_located((By.XPATH, ".//article")))
     except:
@@ -464,8 +473,13 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
     if isinstance(P_save, Path):
         with open(P_save, encoding='utf-8') as f:
             html_string = f.read()
+
+    company_ = None
     if html_string:
         tree = lxml.html.fromstring(html_string)
+        _title_elem = tree.xpath('head/title')
+        if _title_elem:
+            company_ = f"{_title_elem[0].text}_"
         all_cards = tree.xpath(_CLASS)
     else:
         path_list = [P_DATA / f"{query}.html" for query in QUERY_LIST]
@@ -474,13 +488,19 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
         cards_list = [tree.xpath(_CLASS) for tree in tree_list]
         all_cards = chain.from_iterable(cards_list)
 
+    use_chash = (company_ is None) or ('(N=' in company_)
     raw_texts_list = []
     for card in all_cards:
         raw_texts = [x.strip() for x in card.xpath('.//span/text()')]
+        if not use_chash:
+            raw_texts = raw_texts[1:]
         if not re.match(r"\d\d?[y|mo|w|d|h]", raw_texts[0]):
             raw_texts.insert(0, '0h')
         if not raw_texts[3].endswith('yr') and not raw_texts[3].endswith('mo') and not raw_texts[3].endswith('wk') and not raw_texts[3].endswith('hr'):
             raw_texts.insert(3, '-')
+        if not use_chash:
+            raw_texts.insert(6, company_)
+            raw_texts.insert(7, None)
         if not raw_texts[8].endswith('YOE'):
             raw_texts.insert(8, '-')
         if not raw_texts[9].endswith('Mgmt'):
@@ -489,13 +509,20 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
             raw_texts.insert(11, '-')
         url = card.xpath('div[2]/div/a[1]/@href')[0]
         hash = url.split('/')[-1]
-        url2 = card.xpath('div[2]/div/a[2]/@href')[0]
-        raw_texts_list.append([*raw_texts[:14], hash, url2])
-        # raw_texts_list.append([*raw_texts, hash, url2])
-    # HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time', 'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
-    #             '_job_posting', 'views', '_views', 'saves', '_saves', 'applications', '_applications', 'hash', 'url2']
-    HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time', 'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
-                '_job_posting', '_views', 'hash', 'url2']
+
+        if use_chash:
+            url2 = card.xpath('div[2]/div/a[2]/@href')[0]
+            chash = url2.removeprefix('/?company=').split('&', maxsplit=1)[0]
+            raw_texts_list.append([*raw_texts[:14], hash, chash])
+        else:
+            raw_texts_list.append([*raw_texts[:14], hash])
+    if use_chash:
+        HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time', 'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
+                    '_job_posting', '_views', 'hash', 'chash']
+    else:
+        HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time', 'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
+                    '_job_posting', '_views', 'hash']
+
     jdf = pd.DataFrame(raw_texts_list, columns=HEADER_COLS).replace(r'\s+', ' ', regex=True)
     assert all(jdf['_job_posting'] == "Job Posting")
     jdf['company'] = jdf['company'].str[:-1].str.replace('"', "'").str.replace('’', "'")
@@ -507,50 +534,32 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
 
 
 @cache
-def load_cdf(P_companies: Path | str = P_STEM_COMPANY_URLS, verbose=False) -> pd.DataFrame:
+def load_cdf(P_companies: Path | str = P_ALL_COMPANY_URLS, verbose=False) -> pd.DataFrame:
+    if P_companies == P_ALL_COMPANY_URLS:
+        _P_cdf_parquet = P_CACHE / 'cdf_2025-11-10.parquet'
+        cdf = pd.read_parquet(_P_cdf_parquet)
+        return cdf
+
     HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time',
                 'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
                 '_job_posting']
+
     company2cdf = {}
 
-    for path in P_companies.glob('*.html'):
-        with open(path, encoding='utf-8') as f:
-            html_string = f.read()
-
-        if len(html_string) == 0:
+    companies_path_list = [p for p in P_companies.glob('*.html')]
+    if verbose:
+        companies_path_list = tqdm(companies_path_list)
+    for path in companies_path_list:
+        if os.stat(path).st_size < 3000:
             if verbose:
                 print(f'{path.stem} is empty...')
             continue
 
-        all_cards = lxml.html.fromstring(html_string)
-
-        raw_texts_list = []
-        url_list = []
-        for card in all_cards:
-            # header, info = card.xpath("div")
-            raw_texts = [x.strip() for x in card.xpath('.//span/text()')]
-            if not re.match(r"\d\d?[y|mo|w|d|h]", raw_texts[0]):
-                raw_texts.insert(0, '0h')
-            if not raw_texts[3].endswith('yr') and not raw_texts[3].endswith('mo') and not raw_texts[3].endswith('wk') and not raw_texts[3].endswith('hr'):
-                raw_texts.insert(3, '-')
-            raw_texts.insert(6, path.stem)
-            raw_texts.insert(7, '')
-            if not raw_texts[8].endswith('YOE'):
-                raw_texts.insert(8, '-')
-            if not raw_texts[9].endswith('Mgmt'):
-                raw_texts.insert(9, '-')
-            if "Posting" in raw_texts[11]:
-                raw_texts.insert(11, '-')
-            raw_texts_list.append([*raw_texts[:13]])
-            url_list.append(card.xpath('.//@href'))
-
-        _cdf = pd.DataFrame(raw_texts_list, columns=HEADER_COLS).replace(r'\s+', ' ', regex=True)
-        _urls = pd.Series(chain.from_iterable(url_list))
-        _cdf['hash'] = _urls.str.split('/').str[-1]
+        _cdf = load_jdf(path)
         company2cdf[path.name] = _cdf
 
     cdf = pd.concat(company2cdf, ignore_index=True)
-    cdf = _feature_engineering(cdf)
+    # cdf = _feature_engineering(cdf)
     return cdf
 
 
@@ -566,13 +575,12 @@ def load_df(P_save: Path | str = P_STEM) -> pd.DataFrame:
 
 
 
-def _load_cities() -> pd.DataFrame:
-    SILICON_VALLEY = 'Silicon Valley'
-    cities = pd.read_csv(P_DATA / 'raw/cities.csv')[SILICON_VALLEY]
-    bay_cities = cities[~cities.str.startswith('#')].reset_index(drop=True)
-    return bay_cities
-
 def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
+    def load_cities() -> pd.DataFrame:
+        SILICON_VALLEY = 'Silicon Valley'
+        cities = pd.read_csv(P_DATA / 'raw/cities.csv')[SILICON_VALLEY]
+        bay_cities = cities[~cities.str.startswith('#')].reset_index(drop=True)
+        return bay_cities
 
     df['hours'] = (df['days'].str.split(r'\D').str[0].astype(int)
                    * df['days'].str.split(r'\d').str[-1].map({'h': 1, 'd': 24, 'w': 24*7, 'mo': 730, 'y': 24*365}))
@@ -583,15 +591,15 @@ def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
 
     df['location'] = df['location'].str.replace(', California', '').str.replace(', United States', '')
     _salary_type = df['salary'].str.split('/').str[1]
-    _multipler = (_salary_type == 'yr') + 12*(_salary_type == 'mo') + 2.080*(_salary_type == 'hr')
+    _multiplier = (_salary_type == 'yr') + 12*(_salary_type == 'mo') + 2.080*(_salary_type == 'hr')
     _salary_range = df['salary'].str.split('/').str[0].str.split('-')
-    df['lower'] = _salary_range.str[0].str[1:-1].replace('', None).pipe(pd.to_numeric, errors='coerce') * _multipler
-    df['upper'] = _salary_range.str[1].str[1:-1].replace('', None).pipe(pd.to_numeric, errors='coerce') * _multipler
+    df['lower'] = _salary_range.str[0].str[1:-1].replace('', None).pipe(pd.to_numeric, errors='coerce') * _multiplier
+    df['upper'] = _salary_range.str[-1].str[1:-1].replace('', None).pipe(pd.to_numeric, errors='coerce') * _multiplier
     df['median'] = (df['lower'] + df['upper']) / 2
     df['yoe'] = df['yoe'].str.split('+').str[0].pipe(pd.to_numeric, errors='coerce')
     df['mgmt'] = df['mgmt'].str.split('+').str[0].pipe(pd.to_numeric, errors='coerce')
 
-    bay_cities = _load_cities()
+    bay_cities = load_cities()
     regex_bay_cities = f"({'|'.join(bay_cities)})"
     df['bay'] = df['location'].str.extractall(regex_bay_cities).groupby(level=0)[0].apply(tuple)
     # _series = df['location'].str.extractall(regex_bay_cities)
@@ -600,19 +608,18 @@ def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def save_template(P_stem_html: Path | str = P_STEM, verbose=True):
+def render_template(**kwargs):
+    output_html = _template().render(**kwargs)
+    return output_html
+
+
+@cache
+def _template():
     from jinja2 import Environment, FileSystemLoader
     env = Environment(loader=FileSystemLoader(P_DATA / 'external'))
+    JINJA_TEMPLATE = 'template.html'
     template = env.get_template(JINJA_TEMPLATE)
-    with open(P_stem_html) as f:
-        infinite_scroll_html = f.read()
-    _data = {'infinite_scroll': infinite_scroll_html}
-    output = template.render(_data).replace('</source>', '')
-    P_stem_jobs_html = P_stem_html.parent / f'{P_stem_html.stem}_jobs.html'
-    if verbose:
-        print(f'Writing to {P_stem_jobs_html}...')
-    with open(P_stem_jobs_html, 'w') as f:
-        f.write(output)
+    return template
 
 
 @cache
@@ -632,22 +639,24 @@ def log(P_query: Path) -> logging.Logger:
 
 if __name__ == "__main__":
     P_query_list = [
-        P_QUERIES / ('DS_NorCal_Remote.txt'),
-        # P_QUERIES / ('DS_NorCal.txt'),
+        # P_QUERIES / ('ALL.txt'),
+        # P_QUERIES / ('DS.txt'),
+        # P_QUERIES / ('DS_NorCal_Remote.txt'),
+        P_QUERIES / ('DS_NorCal.txt'),
         # P_QUERIES / ('Healthcare.txt'),
         # P_QUERIES / ('SF.txt'),
+        # P_QUERIES / ('SW.txt'),
         # P_QUERIES / ('DS_Remote.txt'),
         # P_QUERIES / ('DS_Socal.txt'),
         # P_QUERIES / ('DS_Seattle.txt'),
         # P_QUERIES / ('DS_NY.txt'),
         # P_QUERIES / ('DS_Midwest.txt'),
         # P_QUERIES / ('DS_DC.txt'),
-        # P_QUERIES / ('SW.txt'),
         # P_QUERIES / ('SW_Remote.txt'),
     ]
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False)  # Path('data/2025-10-11/DS.html')
         main1(P_save)
-        main2(P_save)
+        # main2(P_save)
         # main3(P_save)
         # main4(P_save, obsidian=False)
