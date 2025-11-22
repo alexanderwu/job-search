@@ -133,6 +133,7 @@ def _init_document(document, header=True):
     # normal_style.font.size = Pt(12)
     normal_style.font.size = Pt(11)
     normal_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+    # normal_style.paragraph_format.line_spacing = 1.05
     normal_style.paragraph_format.space_before = 0
     normal_style.paragraph_format.space_after = 0
     normal_style.paragraph_format.tab_stops.add_tab_stop(Inches(7), WD_TAB_ALIGNMENT.RIGHT)
@@ -149,10 +150,11 @@ def _init_document(document, header=True):
     h2_style.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
     h2_style.font.size = Pt(14)
     h2_style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    h2_style.paragraph_format.space_before = 0
+    # h2_style.paragraph_format.space_before = 0
 
     ul_style = document.styles['List Bullet']
     ul_style.paragraph_format.left_indent = Inches(0.5)
+    ul_style.paragraph_format.space_before = Pt(2)
 
 
 def _add_paragraph(document, runs, style='Normal'):
@@ -218,11 +220,12 @@ def _create_xml(name, attr=None, val=None):
 
 
 if __name__ == "__main__":
+    from job_search.config import P_RAW
     # P_resume = P_ALEX_RESUME_MD  # Alexander_Wu_Resume.md
     # P_resume_pdf = P_resume.parent / f"{P_resume.stem}.pdf"
     # print(f"Converting {P_resume} to {P_resume_pdf}...")
     # convert_resume(P_resume, keep_docx=False)
 
     # P_beone_resume = Path('data/raw') / 'Alexander_Wu_Resume - BeOne Medicines.md'
-    P_resume = Path('data/raw') / 'AW_Abbott_Resume.md'
-    convert_resume(P_resume, keep_docx=False)
+    P_resume = P_RAW / 'AW_Roche_Resume.md'
+    convert_resume(P_resume, keep_docx=False, pagebreak=True)
