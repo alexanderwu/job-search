@@ -566,12 +566,13 @@ def load_df(P_save: Path | str = P_STEM) -> pd.DataFrame:
 
 
 
+def _load_cities() -> pd.DataFrame:
+    SILICON_VALLEY = 'Silicon Valley'
+    cities = pd.read_csv(P_DATA / 'raw/cities.csv')[SILICON_VALLEY]
+    bay_cities = cities[~cities.str.startswith('#')].reset_index(drop=True)
+    return bay_cities
+
 def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
-    def load_cities() -> pd.DataFrame:
-        SILICON_VALLEY = 'Silicon Valley'
-        cities = pd.read_csv(P_DATA / 'raw/cities.csv')[SILICON_VALLEY]
-        bay_cities = cities[~cities.str.startswith('#')].reset_index(drop=True)
-        return bay_cities
 
     df['hours'] = (df['days'].str.split(r'\D').str[0].astype(int)
                    * df['days'].str.split(r'\d').str[-1].map({'h': 1, 'd': 24, 'w': 24*7, 'mo': 730, 'y': 24*365}))
@@ -590,7 +591,7 @@ def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     df['yoe'] = df['yoe'].str.split('+').str[0].pipe(pd.to_numeric, errors='coerce')
     df['mgmt'] = df['mgmt'].str.split('+').str[0].pipe(pd.to_numeric, errors='coerce')
 
-    bay_cities = load_cities()
+    bay_cities = _load_cities()
     regex_bay_cities = f"({'|'.join(bay_cities)})"
     df['bay'] = df['location'].str.extractall(regex_bay_cities).groupby(level=0)[0].apply(tuple)
     # _series = df['location'].str.extractall(regex_bay_cities)
@@ -631,10 +632,11 @@ def log(P_query: Path) -> logging.Logger:
 
 if __name__ == "__main__":
     P_query_list = [
-        P_QUERIES / ('DS_NorCal.txt'),
-        P_QUERIES / ('Healthcare.txt'),
-        P_QUERIES / ('SF.txt'),
-        P_QUERIES / ('DS_Remote.txt'),
+        P_QUERIES / ('DS_NorCal_Remote.txt'),
+        # P_QUERIES / ('DS_NorCal.txt'),
+        # P_QUERIES / ('Healthcare.txt'),
+        # P_QUERIES / ('SF.txt'),
+        # P_QUERIES / ('DS_Remote.txt'),
         # P_QUERIES / ('DS_Socal.txt'),
         # P_QUERIES / ('DS_Seattle.txt'),
         # P_QUERIES / ('DS_NY.txt'),
@@ -647,5 +649,5 @@ if __name__ == "__main__":
         P_save = main0(P_query, overwrite=False)  # Path('data/2025-10-11/DS.html')
         main1(P_save)
         main2(P_save)
-        main3(P_save)
+        # main3(P_save)
         # main4(P_save, obsidian=False)
