@@ -223,5 +223,6 @@ if __name__ == "__main__":
     # print(f"Converting {P_resume} to {P_resume_pdf}...")
     # convert_resume(P_resume, keep_docx=False)
 
-    P_beone_resume = Path('data/raw') / 'Alexander_Wu_Resume - BeOne Medicines.md'
-    convert_resume(P_beone_resume, keep_docx=False)
+    # P_beone_resume = Path('data/raw') / 'Alexander_Wu_Resume - BeOne Medicines.md'
+    P_resume = Path('data/raw') / 'AW_Abbott_Resume.md'
+    convert_resume(P_resume, keep_docx=False)

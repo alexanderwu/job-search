@@ -1,4 +1,4 @@
-.PHONY: sync clean lint format test
+.PHONY: sync clean lint format test docs docs-serve dataset serve create-database postgres
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
@@ -44,8 +44,18 @@ docs-serve: ## serve documentation to livereload while you work
 dataset:
 	python job_search/dataset.py
 
+resume:
+	python job_search/resume.py
+
 serve:
 	fastapi dev job_search/backend.py
+
+## Database
+database:
+	docker run --name postgres-db -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD -e POSTGRES_USER=$POSTGRES_USER -v postgres-data:/var/lib/postgresql -p 5432:5432 -d postgres
+
+postgres:
+	docker exec -it postgres-db psql -U wua27 -d postgres
 
 #################################################################################
 # PROJECT RULES                                                                 #
