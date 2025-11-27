@@ -88,7 +88,7 @@ uv pip install -e .
 
 ```sh
 docker run --name postgres-db \
-  -e POSTGRES_PASSWORD=Good2piano7 \
+  -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
   -e POSTGRES_USER=wua27 \
 #   -v ./my-postgres.conf:/etc/postgresql/postgresql.conf \
   -v ./my-postgres.conf:/var/lib/postgresql/18/docker/postgresql.conf \
@@ -107,7 +107,7 @@ docker run --name postgres-db \
 docker run --name pgadmin \
   -p 5050:80 \
   -e "PGADMIN_DEFAULT_EMAIL=alexander.wu7@gmail.com" \
-  -e "PGADMIN_DEFAULT_PASSWORD=Good2piano7" \
+  -e "PGADMIN_DEFAULT_PASSWORD=$POSTGRES_PASSWORD" \
   -d dpage/pgadmin4
 
 docker logs -f postgres-db
@@ -116,7 +116,7 @@ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pos
 docker inspect postgres-db -f "{{json .NetworkSettings.Networks }}"
 
 docker network create
-docker run --network pgnetwork --name postgres-db -e POSTGRES_PASSWORD=Good2piano7 -p 5432:5432 postgres
+docker run --network pgnetwork --name postgres-db -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD -p 5432:5432 postgres
 docker run --network pgnetwork --name pgadmin -p 80:80 dpage/pgadmin4
 
 docker exec -it postgres-db psql -U wua27 -d postgres
