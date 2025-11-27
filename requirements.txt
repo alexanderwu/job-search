@@ -17,6 +17,7 @@ asttokens==3.0.0
 attrs==25.4.0
     # via
     #   outcome
+    #   seleniumbase
     #   trio
 aw @ git+https://github.com/alexanderwu/aw.git@1b710426db449a7cab6716ddd0aaa9bddd4ca58a
     # via job-search (pyproject.toml)
@@ -25,40 +26,94 @@ babel==2.17.0
 backrefs==5.9
     # via mkdocs-material
 beautifulsoup4==4.14.2
-    # via markdownify
+    # via
+    #   botasaurus
+    #   botasaurus-requests
+    #   markdownify
+    #   seleniumbase
+behave==1.2.6
+    # via seleniumbase
+bota==4.0.155
+    # via botasaurus
+botasaurus==4.0.96
+    # via job-search (pyproject.toml)
+botasaurus-api==4.0.10
+    # via botasaurus
+botasaurus-driver==4.0.92
+    # via
+    #   job-search (pyproject.toml)
+    #   botasaurus
+botasaurus-humancursor==4.0.83
+    # via botasaurus
+botasaurus-proxy-authentication==1.0.16
+    # via
+    #   botasaurus
+    #   botasaurus-driver
+botasaurus-requests==4.0.38
+    # via
+    #   job-search (pyproject.toml)
+    #   botasaurus
+brotli==1.2.0
+    # via geventhttpclient
 cachetools==6.2.1
     # via google-auth
-certifi==2025.10.5
+certifi==2025.11.12
     # via
+    #   geventhttpclient
     #   httpcore
     #   httpx
     #   requests
     #   selenium
+    #   seleniumbase
     #   sentry-sdk
+cffi==2.0.0
+    # via
+    #   gevent
+    #   trio
+chardet==5.2.0
+    # via seleniumbase
 charset-normalizer==3.4.4
-    # via requests
+    # via
+    #   requests
+    #   seleniumbase
 click==8.3.0
     # via
+    #   bota
+    #   botasaurus-requests
     #   mkdocs
     #   rich-toolkit
     #   typer
     #   uvicorn
+close-chrome==4.0.40
+    # via botasaurus
 colorama==0.4.6
     # via
+    #   click
     #   griffe
+    #   ipython
+    #   mkdocs
     #   mkdocs-material
+    #   pdbp
+    #   pytest
+    #   seleniumbase
+    #   tqdm
+    #   uvicorn
 comm==0.2.3
     # via
     #   ipykernel
     #   ipywidgets
 contourpy==1.3.3
     # via matplotlib
+cssselect==1.3.0
+    # via seleniumbase
 cycler==0.12.1
     # via matplotlib
 debugpy==1.8.17
     # via ipykernel
 decorator==5.2.1
     # via ipython
+deprecated==1.3.1
+    # via botasaurus-driver
 dnspython==2.8.0
     # via email-validator
 docx2pdf==0.1.8
@@ -69,6 +124,14 @@ email-validator==2.3.0
     # via
     #   fastapi
     #   pydantic
+et-xmlfile==2.0.0
+    # via openpyxl
+exceptiongroup==1.3.1
+    # via seleniumbase
+execnet==2.1.2
+    # via
+    #   pytest-xdist
+    #   seleniumbase
 executing==2.2.1
     # via stack-data
 fastapi==0.121.0
@@ -77,8 +140,18 @@ fastapi-cli==0.0.14
     # via fastapi
 fastapi-cloud-cli==0.3.1
     # via fastapi-cli
+fasteners==0.20
+    # via seleniumbase
+filelock==3.20.0
+    # via seleniumbase
 fonttools==4.60.1
     # via matplotlib
+gevent==25.9.1
+    # via
+    #   botasaurus-requests
+    #   geventhttpclient
+geventhttpclient==2.3.5
+    # via botasaurus-requests
 ghp-import==2.1.0
     # via mkdocs
 google-auth==2.41.1
@@ -86,12 +159,15 @@ google-auth==2.41.1
 google-genai==1.43.0
     # via job-search (pyproject.toml)
 greenlet==3.2.4
-    # via sqlalchemy
+    # via
+    #   gevent
+    #   sqlalchemy
 griffe==1.14.0
     # via mkdocstrings-python
 h11==0.16.0
     # via
     #   httpcore
+    #   seleniumbase
     #   uvicorn
     #   wsproto
 httpcore==1.0.9
@@ -100,6 +176,7 @@ httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
     # via
+    #   botasaurus-requests
     #   fastapi
     #   fastapi-cloud-cli
     #   google-genai
@@ -109,9 +186,12 @@ idna==3.11
     #   email-validator
     #   httpx
     #   requests
+    #   seleniumbase
     #   trio
-iniconfig==2.1.0
-    # via pytest
+iniconfig==2.3.0
+    # via
+    #   pytest
+    #   seleniumbase
 ipykernel==7.0.0
     # via
     #   job-search (pyproject.toml)
@@ -127,6 +207,10 @@ ipywidgets==8.1.7
     # via
     #   job-search (pyproject.toml)
     #   anywidget
+javascript-fixes==1.1.29
+    # via
+    #   botasaurus
+    #   botasaurus-proxy-authentication
 jedi==0.19.2
     # via ipython
 jinja2==3.1.6
@@ -136,6 +220,10 @@ jinja2==3.1.6
     #   mkdocs
     #   mkdocs-material
     #   mkdocstrings
+    #   pytest-html
+    #   seleniumbase
+joblib==1.5.2
+    # via botasaurus
 jupyter-client==8.6.3
     # via ipykernel
 jupyter-core==5.8.1
@@ -149,6 +237,7 @@ kiwisolver==1.4.9
 lxml==6.0.2
     # via
     #   job-search (pyproject.toml)
+    #   botasaurus
     #   python-docx
 markdown==3.9
     # via
@@ -162,6 +251,7 @@ markdown-it-py==4.0.0
     #   job-search (pyproject.toml)
     #   mdit-py-plugins
     #   rich
+    #   seleniumbase
 markdownify==1.2.0
     # via job-search (pyproject.toml)
 markupsafe==3.0.3
@@ -170,6 +260,7 @@ markupsafe==3.0.3
     #   mkdocs
     #   mkdocs-autorefs
     #   mkdocstrings
+    #   seleniumbase
 matplotlib==3.10.7
     # via seaborn
 matplotlib-inline==0.1.7
@@ -179,7 +270,9 @@ matplotlib-inline==0.1.7
 mdit-py-plugins==0.5.0
     # via markdown-it-py
 mdurl==0.1.2
-    # via markdown-it-py
+    # via
+    #   markdown-it-py
+    #   seleniumbase
 memory-profiler==0.61.0
     # via job-search (pyproject.toml)
 mergedeep==1.3.4
@@ -208,6 +301,8 @@ mkdocstrings==0.30.1
     #   mkdocstrings-python
 mkdocstrings-python==1.18.2
     # via mkdocstrings
+mycdp==1.3.1
+    # via seleniumbase
 narwhals==2.8.0
     # via plotly
 nest-asyncio==1.6.0
@@ -215,13 +310,17 @@ nest-asyncio==1.6.0
 numpy==2.3.3
     # via
     #   aw
+    #   botasaurus-humancursor
     #   contourpy
     #   matplotlib
     #   pandas
     #   scipy
     #   seaborn
+openpyxl==3.1.5
+    # via botasaurus
 outcome==1.3.0.post0
     # via
+    #   seleniumbase
     #   trio
     #   trio-websocket
 packaging==25.0
@@ -231,6 +330,8 @@ packaging==25.0
     #   mkdocs
     #   plotly
     #   pytest
+    #   pytest-rerunfailures
+    #   seleniumbase
     #   webdriver-manager
 paginate==0.5.7
     # via mkdocs-material
@@ -239,24 +340,40 @@ pandas==2.3.3
     #   job-search (pyproject.toml)
     #   aw
     #   seaborn
+parameterized==0.9.0
+    # via seleniumbase
+parse==1.20.2
+    # via
+    #   behave
+    #   parse-type
+    #   seleniumbase
+parse-type==0.6.6
+    # via
+    #   behave
+    #   seleniumbase
 parso==0.8.5
     # via jedi
 pathspec==0.12.1
     # via mkdocs
-pexpect==4.9.0
-    # via ipython
+pdbp==1.8.1
+    # via seleniumbase
 pillow==11.3.0
     # via matplotlib
-pip==25.2
-    # via job-search (pyproject.toml)
+pip==25.3
+    # via
+    #   job-search (pyproject.toml)
+    #   seleniumbase
 platformdirs==4.5.0
     # via
     #   jupyter-core
     #   mkdocs-get-deps
+    #   seleniumbase
 plotly==6.3.1
     # via job-search (pyproject.toml)
 pluggy==1.6.0
-    # via pytest
+    # via
+    #   pytest
+    #   seleniumbase
 polars==1.34.0
     # via job-search (pyproject.toml)
 polars-runtime-32==1.34.0
@@ -265,14 +382,14 @@ prompt-toolkit==3.0.52
     # via ipython
 psutil==7.1.0
     # via
+    #   botasaurus
+    #   botasaurus-driver
     #   ipykernel
     #   memory-profiler
 psycopg2-binary==2.9.11
     # via job-search (pyproject.toml)
 psygnal==0.15.0
     # via anywidget
-ptyprocess==0.7.0
-    # via pexpect
 pure-eval==0.2.3
     # via stack-data
 pyarrow==21.0.0
@@ -283,6 +400,8 @@ pyasn1==0.6.1
     #   rsa
 pyasn1-modules==0.4.2
     # via google-auth
+pycparser==2.23
+    # via cffi
 pydantic==2.12.4
     # via
     #   job-search (pyproject.toml)
@@ -296,18 +415,47 @@ pygments==2.19.2
     #   ipython
     #   ipython-pygments-lexers
     #   mkdocs-material
+    #   pdbp
     #   pytest
     #   rich
+    #   seleniumbase
 pymdown-extensions==10.16.1
     # via
     #   mkdocs-material
     #   mkdocstrings
+pynose==1.5.5
+    # via seleniumbase
+pyotp==2.9.0
+    # via seleniumbase
 pyparsing==3.2.5
     # via matplotlib
+pyreadline3==3.5.4
+    # via
+    #   seleniumbase
+    #   tabcompleter
 pysocks==1.7.1
     # via urllib3
-pytest==8.4.2
-    # via job-search (pyproject.toml)
+pytest==9.0.1
+    # via
+    #   job-search (pyproject.toml)
+    #   pytest-html
+    #   pytest-metadata
+    #   pytest-ordering
+    #   pytest-rerunfailures
+    #   pytest-xdist
+    #   seleniumbase
+pytest-html==4.0.2
+    # via seleniumbase
+pytest-metadata==3.1.1
+    # via
+    #   pytest-html
+    #   seleniumbase
+pytest-ordering==0.6
+    # via seleniumbase
+pytest-rerunfailures==16.1
+    # via seleniumbase
+pytest-xdist==3.8.0
+    # via seleniumbase
 python-dateutil==2.9.0.post0
     # via
     #   ghp-import
@@ -323,8 +471,16 @@ python-dotenv==1.1.1
     #   webdriver-manager
 python-multipart==0.0.20
     # via fastapi
+pytweening==1.2.0
+    # via botasaurus-humancursor
 pytz==2025.2
     # via pandas
+pyvirtualdisplay==3.0
+    # via botasaurus-driver
+pywin32==311
+    # via
+    #   docx2pdf
+    #   jupyter-core
 pyyaml==6.0.3
     # via
     #   job-search (pyproject.toml)
@@ -332,6 +488,7 @@ pyyaml==6.0.3
     #   mkdocs-get-deps
     #   pymdown-extensions
     #   pyyaml-env-tag
+    #   seleniumbase
     #   uvicorn
 pyyaml-env-tag==1.1
     # via mkdocs
@@ -341,14 +498,20 @@ pyzmq==27.1.0
     #   jupyter-client
 requests==2.32.5
     # via
+    #   botasaurus
+    #   botasaurus-api
+    #   botasaurus-driver
     #   google-genai
     #   mkdocs-material
+    #   seleniumbase
     #   typesense
     #   webdriver-manager
 rich==14.2.0
     # via
     #   job-search (pyproject.toml)
+    #   botasaurus-requests
     #   rich-toolkit
+    #   seleniumbase
     #   typer
 rich-toolkit==0.15.1
     # via
@@ -362,36 +525,56 @@ rsa==4.9.1
     # via google-auth
 ruff==0.14.0
     # via job-search (pyproject.toml)
+sbvirtualdisplay==1.4.0
+    # via seleniumbase
 scipy==1.16.2
     # via
     #   job-search (pyproject.toml)
     #   aw
 seaborn==0.13.2
     # via job-search (pyproject.toml)
-selenium==4.36.0
+selenium==4.38.0
+    # via
+    #   job-search (pyproject.toml)
+    #   seleniumbase
+seleniumbase==4.44.19
     # via job-search (pyproject.toml)
 sentry-sdk==2.43.0
     # via fastapi-cloud-cli
+setuptools==80.9.0
+    # via seleniumbase
 shellingham==1.5.4
     # via typer
 six==1.17.0
     # via
+    #   behave
     #   markdownify
+    #   parse-type
     #   python-dateutil
+    #   seleniumbase
 sniffio==1.3.1
     # via
     #   anyio
+    #   seleniumbase
     #   trio
 sortedcontainers==2.4.0
-    # via trio
+    # via
+    #   seleniumbase
+    #   trio
 soupsieve==2.8
-    # via beautifulsoup4
+    # via
+    #   beautifulsoup4
+    #   seleniumbase
 sqlalchemy==2.0.44
     # via job-search (pyproject.toml)
 stack-data==0.6.3
     # via ipython
 starlette==0.49.3
     # via fastapi
+tabcompleter==1.4.0
+    # via
+    #   pdbp
+    #   seleniumbase
 tenacity==9.1.2
     # via google-genai
 tornado==6.5.2
@@ -410,12 +593,15 @@ traitlets==5.14.3
     #   jupyter-client
     #   jupyter-core
     #   matplotlib-inline
-trio==0.31.0
+trio==0.32.0
     # via
     #   selenium
+    #   seleniumbase
     #   trio-websocket
 trio-websocket==0.12.2
-    # via selenium
+    # via
+    #   selenium
+    #   seleniumbase
 typer==0.20.0
     # via
     #   fastapi-cli
@@ -427,6 +613,7 @@ typing-extensions==4.15.0
     #   anyio
     #   anywidget
     #   beautifulsoup4
+    #   exceptiongroup
     #   fastapi
     #   google-genai
     #   pydantic
@@ -434,6 +621,7 @@ typing-extensions==4.15.0
     #   python-docx
     #   rich-toolkit
     #   selenium
+    #   seleniumbase
     #   sqlalchemy
     #   starlette
     #   typer
@@ -444,16 +632,17 @@ tzdata==2025.2
     # via pandas
 urllib3==2.5.0
     # via
+    #   botasaurus-requests
+    #   geventhttpclient
     #   requests
     #   selenium
+    #   seleniumbase
     #   sentry-sdk
 uvicorn==0.38.0
     # via
     #   fastapi
     #   fastapi-cli
     #   fastapi-cloud-cli
-uvloop==0.22.1
-    # via uvicorn
 watchdog==6.0.0
     # via mkdocs
 watchfiles==1.1.1
@@ -465,12 +654,26 @@ wcwidth==0.2.14
 webdriver-manager==4.0.2
     # via job-search (pyproject.toml)
 websocket-client==1.9.0
-    # via selenium
+    # via
+    #   botasaurus-driver
+    #   selenium
+    #   seleniumbase
 websockets==15.0.1
     # via
     #   google-genai
+    #   seleniumbase
     #   uvicorn
+wheel==0.45.1
+    # via seleniumbase
 widgetsnbextension==4.0.14
     # via ipywidgets
-wsproto==1.2.0
-    # via trio-websocket
+wrapt==2.0.1
+    # via deprecated
+wsproto==1.3.2
+    # via
+    #   seleniumbase
+    #   trio-websocket
+zope-event==6.1
+    # via gevent
+zope-interface==8.1.1
+    # via gevent

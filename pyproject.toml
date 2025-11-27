@@ -13,6 +13,9 @@ classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
     "anywidget[dev]>=0.9.18",
     "aw",
+    "botasaurus>=4.0.96",
+    "botasaurus-driver>=4.0.92",
+    "botasaurus-requests>=4.0.38",
     "docx2pdf>=0.1.8",
     "duckdb>=1.4.1",
     "fastapi[standard]>=0.121.0",
@@ -43,6 +46,7 @@ dependencies = [
     "scipy>=1.16.2",
     "seaborn>=0.13.2",
     "selenium>=4.36.0",
+    "seleniumbase>=4.44.19",
     "sqlalchemy>=2.0.44",
     "tqdm>=4.67.1",
     "typesense>=1.1.1",

@@ -17,7 +17,6 @@ from textwrap import dedent
 from warnings import filterwarnings
 
 import lxml.html
-import requests
 from markdownify import markdownify as md
 # from markdown_it import MarkdownIt
 # from mdit_py_plugins.front_matter import front_matter_plugin
@@ -26,18 +25,14 @@ import pandas as pd
 from tqdm import TqdmExperimentalWarning
 from tqdm.rich import tqdm
 filterwarnings("ignore", category=TqdmExperimentalWarning)
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from botasaurus_requests import request
+from botasaurus.user_agent import UserAgent
+
 
 from job_search.utils import is_running_wsl
 from job_search.config import (
-    HIRING_CAFE_HTTPS,
     VIEW_JOB_HTTPS,
     QUERY_LIST,
-    JINJA_TEMPLATE,
     P_DATA,
     P_QUERIES,
     P_CACHE,
@@ -45,12 +40,8 @@ from job_search.config import (
     P_URLS,
     P_DICT,
     P_ALL_COMPANY_URLS,
-    STEM,
     P_DATE,
     P_STEM,
-    P_STEM_JOBS_HTML,
-    P_STEM_COMPANY_URLS,
-    P_STEM_QUERY_TXT,
 )
 
 
@@ -59,20 +50,20 @@ SCROLL_PAUSE_TIME = 0.5
 WAIT_TIME = 10
 
 
-def init_driver(headless=True):
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.chrome.service import Service
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    if headless:
-        chrome_options.add_argument("--headless")  # Ensure GUI is off
-    if is_running_wsl():
-        webdriver_service = Service(f"/usr/lib/chromium-browser/chromedriver")
-        driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
-    else:
-        driver = webdriver.Chrome(options=chrome_options)
-    return driver
+def init_driver(headless=True, proxy=False):
+    from seleniumbase import Driver
 
+    PROXY = None
+    # Use proxy. Format: "SERVER:PORT" or "USER:PASS@SERVER:PORT".
+    if proxy:
+        ii = random.randint(1, 44745)
+        PROXY = f"byfdawqz-US-{ii}:fhx888ooginw@p.webshare.io:80"
+
+    if is_running_wsl():
+        driver = Driver(uc=True, proxy=PROXY, headless=False)
+    else:
+        driver = Driver(uc=True, proxy=PROXY, headless=headless)
+    return driver
 
 ################################################################################
 # Main Functions
@@ -114,17 +105,18 @@ def main0(path_query: Path | str, overwrite=False) -> Path:
     """)
     log(P_save).info(_query_str)
 
-    driver = init_driver(headless=False)
+    driver = init_driver(headless=False, proxy=False)
     driver.maximize_window()
     driver.get(query_url)
-    wait = WebDriverWait(driver, 10)
     scroll_bottom(driver)
 
     _SCROLL_XPATH = "//div[@class='infinite-scroll-component__outerdiv']"
     try:
-        scroll_jobs = wait.until(EC.visibility_of_element_located((By.XPATH, _SCROLL_XPATH)))
+        # scroll_jobs = wait.until(EC.visibility_of_element_located((By.XPATH, _SCROLL_XPATH)))
+        scroll_jobs = driver.wait_for_element(_SCROLL_XPATH)
         scroll_jobs_outer_html = scroll_jobs.get_attribute("outerHTML")
-    except TimeoutException:
+    # except TimeoutException:
+    except:
         log(P_save).warning(f"Could not save {P_save}...")
         scroll_jobs_outer_html = ''
         input("Press ENTER to continue...")
@@ -175,9 +167,10 @@ def _save_dicts(df, P_save=None):
         if P_dict.exists():
             continue
         if not P_dict.exists():
-            # url_get_content = requests_get(url).content
-            url_get_content = selenium_get(url)
-            time.sleep(random.randint(0,2))
+            url_get_content = requests_get(url)
+            # url_get_content = selenium_get(url, proxy=False)
+            # time.sleep(random.randint(2,4))
+            time.sleep(random.uniform(1,3))
             with open(P_url, 'w', encoding='utf-8') as f:
                 f.write(url_get_content)
 
@@ -212,11 +205,6 @@ def main2(P_save: Path | str):
     Get outerHTML of job cards for companies with multiple job listings
     """
     from datetime import datetime
-    from selenium import webdriver
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.by import By
-    from selenium.common.exceptions import TimeoutException
 
     log(P_save).info(f"Scraping job urls from companies with multiple listings from {P_save}...")
 
@@ -242,7 +230,6 @@ def main2(P_save: Path | str):
     log(P_save).info(f'Downloading {len(company_chash_list)} companies...')
 
     driver = init_driver()
-    wait = WebDriverWait(driver, 10)
 
     P_ALL = load_query_url(P_QUERIES / 'ALL.txt')
     ALL_SEARCH_STATE = P_ALL.split('?', maxsplit=1)[1]
@@ -258,17 +245,19 @@ def main2(P_save: Path | str):
                 continue
 
         company_url = f"{HIRING_CAFE_HTTPS}/?company={chash}&{ALL_SEARCH_STATE}"
-        _GRID_XPATH = "//div[@class='my-masonry-grid']"
         driver.get(company_url)
 
         _rand_wait_time = random.randint(2,3)
         # _rand_wait_time = random.randint(4,6)
         scroll_bottom(driver, wait_time=_rand_wait_time)
 
+        _GRID_XPATH = "//div[@class='my-masonry-grid']"
         try:
-            job_cards = wait.until(EC.visibility_of_element_located((By.XPATH, _GRID_XPATH)))
+            # job_cards = wait.until(EC.visibility_of_element_located((By.XPATH, _GRID_XPATH)))
+            job_cards = driver.wait_for_element(_GRID_XPATH)
             job_cards_outer_html = job_cards.get_attribute("outerHTML")
-        except TimeoutException:
+        # except TimeoutException:
+        except:
             job_cards_outer_html = ''
 
         _data = dict(body=job_cards_outer_html, title=company, description=company_url)
@@ -302,6 +291,7 @@ def main3(P_save: Path | str) -> pd.DataFrame:
     _save_dicts(cdf2, P_companies)
 
     log(P_save).info("Done.")
+
 
 def main4(P_save: Path | str, obsidian=False):
     """Sync with Obsidian"""
@@ -430,19 +420,33 @@ def decode_element(element, base_level=0) -> None | str:
 
 @cache
 def requests_get(url):
-    url_get = requests.get(url)
-    return url_get
+    # _user_agent = UserAgent().get_random_cycled()
+    _user_agent = UserAgent.user_agent_106
+    _headers = {
+        'User-Agent': _user_agent,
+        'Referer': 'https://hiring.cafe/',
+        'Origin': 'https://hiring.cafe',
+        'Sec-Fetch-Dest': 'empty',
+        # 'proxy': {
+        #     'http': PROXY,
+        #     'https': PROXY,
+        # }
+    }
+    response = request.get(url, headers=_headers)
+    html_string = response.content.decode()
+    return html_string
 
 
 @cache
-def selenium_get(url, wait_time=2):
-    driver = init_driver()
-    wait = WebDriverWait(driver, 2)
+def selenium_get(url, wait_time=2, proxy=False):
+    driver = init_driver(proxy=proxy)
+    # wait = WebDriverWait(driver, 2)
     driver.get(url)
     # scroll_bottom(driver, wait_time=1)
     scroll_bottom(driver, wait_time=wait_time)
     try:
-        wait.until(EC.visibility_of_element_located((By.XPATH, ".//article")))
+        # wait.until(EC.visibility_of_element_located((By.XPATH, ".//article")))
+        driver.wait_for_element(".//article""")
     except:
         pass
     # body = wait.until(EC.visibility_of_element_located((By.XPATH, "/body")))
@@ -455,7 +459,8 @@ def selenium_get(url, wait_time=2):
 def identifier_get(identifier, save=False, verbose=True):
     hash = identifier.rsplit('.', 1)[-1]
     url = VIEW_JOB_HTTPS + hash
-    html_source = selenium_get(url)
+    # html_source = selenium_get(url)
+    html_source = requests_get(url)
     if save:
         P_url = P_URLS / f"{identifier}.html"
         if verbose:
@@ -640,9 +645,9 @@ def log(P_query: Path) -> logging.Logger:
 if __name__ == "__main__":
     P_query_list = [
         # P_QUERIES / ('ALL.txt'),
-        # P_QUERIES / ('DS.txt'),
+        P_QUERIES / ('DS.txt'),
         # P_QUERIES / ('DS_NorCal_Remote.txt'),
-        P_QUERIES / ('DS_NorCal.txt'),
+        # P_QUERIES / ('DS_NorCal.txt'),
         # P_QUERIES / ('Healthcare.txt'),
         # P_QUERIES / ('SF.txt'),
         # P_QUERIES / ('SW.txt'),
@@ -657,6 +662,6 @@ if __name__ == "__main__":
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False)  # Path('data/2025-10-11/DS.html')
         main1(P_save)
-        # main2(P_save)
-        # main3(P_save)
+        main2(P_save)
+        main3(P_save)
         # main4(P_save, obsidian=False)
