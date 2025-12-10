@@ -31,6 +31,8 @@ def jupyter_css_style():
     """)
     return css_style
 
+def tailwind_css():
+    return HTML('<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>')
 
 def display_code(code: str, language: str = 'python'):
     from IPython.display import display, Markdown

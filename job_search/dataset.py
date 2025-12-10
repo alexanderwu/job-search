@@ -2,6 +2,7 @@
 Download job description
 """
 #!/usr/bin/env python3
+from textwrap import dedent
 import json
 import logging
 import os
@@ -27,6 +28,7 @@ from tqdm.rich import tqdm
 filterwarnings("ignore", category=TqdmExperimentalWarning)
 from botasaurus_requests import request
 from botasaurus.user_agent import UserAgent
+from selenium.webdriver.common.by import By
 
 
 from job_search.utils import is_running_wsl
@@ -108,6 +110,7 @@ def main0(path_query: Path | str, overwrite=False) -> Path:
     driver = init_driver(headless=False, proxy=False)
     driver.maximize_window()
     driver.get(query_url)
+    time.sleep(2)
     scroll_bottom(driver)
 
     _SCROLL_XPATH = "//div[@class='infinite-scroll-component__outerdiv']"
@@ -121,11 +124,37 @@ def main0(path_query: Path | str, overwrite=False) -> Path:
         scroll_jobs_outer_html = ''
         input("Press ENTER to continue...")
 
-    _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
-    N = len(lxml.html.fromstring(scroll_jobs_outer_html).xpath(_CLASS))
+    # _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
+    # N = len(lxml.html.fromstring(scroll_jobs_outer_html).xpath(_CLASS))
+    _grid = driver.find_element("div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']")
+    N = len(_grid.find_elements(By.XPATH, "./*"))
     log(P_save).info(f"Saving {P_save} (N={N})...")
 
-    _title = f"{P_save.stem} (N={N})"
+    N_clicks = len(driver.find_elements("button[class='rounded-full bg-gray-400 w-1.5 h-1.5 flex-none']"))
+    log(P_save).info(f"Expanding jobs (N_clicks={N_clicks})...")
+    ## Expand job cards
+    SCRIPT_INSERT_CARDS = dedent('''
+        const clicks = document.querySelectorAll("button[class='rounded-full bg-gray-400 w-1.5 h-1.5 flex-none']")
+        const grid = document.querySelector("div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']")
+        console.log(grid)
+        function insertCardBefore(e) {
+            const card = this.closest("div[class='relative xl:z-10']");
+            grid.insertBefore(card.cloneNode(true), card);
+        }
+        clicks.forEach((btn, index) => {
+            btn.addEventListener("click", insertCardBefore, true);
+            setTimeout(() => {
+                btn.click()
+            }, index*700)
+        });
+    ''')
+    driver.execute_script(SCRIPT_INSERT_CARDS)
+    time.sleep(1 + N_clicks*0.77)
+    _grid = driver.find_element("div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']")
+    N_expanded = len(_grid.find_elements(By.XPATH, "./*"))
+    scroll_jobs = driver.wait_for_element(_SCROLL_XPATH)
+
+    _title = f"{P_save.stem} (N={N}, N_expanded={N_expanded})"
     _data = dict(body=scroll_jobs_outer_html, title=_title, description=query_url)
     scroll_jobs_html = render_template(**_data).replace('</source>', '')
 
@@ -211,9 +240,12 @@ def main2(P_save: Path | str):
     HIRING_CAFE_HTTPS = 'https://hiring.cafe'
 
     df = load_jdf(P_save)
-    df2 = df.query('_len > 1').reset_index(drop=True)
-    df2_company = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
-    company_chash_list = list(zip(df2_company, df2['chash']))
+    # df2 = df.query('_len > 1').reset_index(drop=True)
+    # df2_company = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
+    # company_chash_list = list(zip(df2_company, df2['chash']))
+    df4 = df.query('_len >= 4').reset_index(drop=True)
+    df4_company = df4['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
+    company_chash_list = list(zip(df4_company, df4['chash']))
 
     if len(company_chash_list) == 0:
         log(P_save).warning('No companies with multiple listings... ')
@@ -229,7 +261,7 @@ def main2(P_save: Path | str):
 
     log(P_save).info(f'Downloading {len(company_chash_list)} companies...')
 
-    driver = init_driver()
+    driver = init_driver(headless=False)
 
     P_ALL = load_query_url(P_QUERIES / 'ALL.txt')
     ALL_SEARCH_STATE = P_ALL.split('?', maxsplit=1)[1]
@@ -241,12 +273,14 @@ def main2(P_save: Path | str):
             # _rand_refresh = random.randint(2,7)
             # _rand_refresh = random.randint(1,2)
             _rand_refresh = 1
+            # _rand_refresh = 365
             if (datetime.now() - datetime.fromtimestamp(P_company_url.stat().st_mtime)).days < _rand_refresh:
                 continue
 
         company_url = f"{HIRING_CAFE_HTTPS}/?company={chash}&{ALL_SEARCH_STATE}"
         driver.get(company_url)
 
+        time.sleep(2)
         _rand_wait_time = random.randint(2,3)
         # _rand_wait_time = random.randint(4,6)
         scroll_bottom(driver, wait_time=_rand_wait_time)
@@ -274,7 +308,7 @@ def main3(P_save: Path | str) -> pd.DataFrame:
     P_companies = P_save.parents[3] / f"cache/ALL_company_urls"
 
     df = load_jdf(P_save)
-    df2 = df.query('_len > 1').reset_index(drop=True)
+    df2 = df.query('_len >= 3').reset_index(drop=True)
     _df2_companies = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
     cdf2_dict = {}
     for company in _df2_companies:
@@ -645,19 +679,19 @@ def log(P_query: Path) -> logging.Logger:
 if __name__ == "__main__":
     P_query_list = [
         # P_QUERIES / ('ALL.txt'),
-        P_QUERIES / ('DS.txt'),
         # P_QUERIES / ('DS_NorCal_Remote.txt'),
+        # P_QUERIES / ('DS.txt'),
         # P_QUERIES / ('DS_NorCal.txt'),
         # P_QUERIES / ('Healthcare.txt'),
-        # P_QUERIES / ('SF.txt'),
-        # P_QUERIES / ('SW.txt'),
-        # P_QUERIES / ('DS_Remote.txt'),
-        # P_QUERIES / ('DS_Socal.txt'),
-        # P_QUERIES / ('DS_Seattle.txt'),
-        # P_QUERIES / ('DS_NY.txt'),
-        # P_QUERIES / ('DS_Midwest.txt'),
-        # P_QUERIES / ('DS_DC.txt'),
-        # P_QUERIES / ('SW_Remote.txt'),
+        P_QUERIES / ('SF.txt'),
+    #     P_QUERIES / ('SW.txt'),
+    #     P_QUERIES / ('DS_Remote.txt'),
+    #     P_QUERIES / ('DS_Socal.txt'),
+    #     P_QUERIES / ('DS_Seattle.txt'),
+    #     P_QUERIES / ('DS_NY.txt'),
+    #     P_QUERIES / ('DS_Midwest.txt'),
+    #     P_QUERIES / ('DS_DC.txt'),
+    #     P_QUERIES / ('SW_Remote.txt'),
     ]
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False)  # Path('data/2025-10-11/DS.html')
