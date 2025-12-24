@@ -220,12 +220,15 @@ def _create_xml(name, attr=None, val=None):
 
 
 if __name__ == "__main__":
-    from job_search.config import P_RAW
+    # from job_search.config import P_RAW
     # P_resume = P_ALEX_RESUME_MD  # Alexander_Wu_Resume.md
     # P_resume_pdf = P_resume.parent / f"{P_resume.stem}.pdf"
     # print(f"Converting {P_resume} to {P_resume_pdf}...")
     # convert_resume(P_resume, keep_docx=False)
 
     # P_beone_resume = Path('data/raw') / 'Alexander_Wu_Resume - BeOne Medicines.md'
-    P_resume = P_RAW / 'AW_Roche_Resume.md'
+    # P_resume = P_RAW / 'AW_Roche_Resume.md'
+    # P_resume = Path('data/raw') / 'AW_Healthcare_Resume.md'
+    # P_resume = Path('data/raw') / 'Alex_Wu_Resume - RWD Programmer.md'
+    P_resume = Path('data/raw') / 'Alex_Wu_Verily_Resume.md'
     convert_resume(P_resume, keep_docx=False, pagebreak=True)

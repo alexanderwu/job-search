@@ -13,7 +13,7 @@ P_PROCESSED = P_DATA / 'processed'
 
 HIRING_CAFE_HTTPS = "https://hiring.cafe"
 VIEW_JOB_HTTPS = "https://hiring.cafe/viewjob/"
-QUERY_LIST = [
+QUERY_LIST: list[str] = [
     DS_NORCAL_REMOTE := 'DS_NorCal_Remote',
     DS_HEALTH := 'DS_healthcare',
     DS_NORCAL := 'DS_NorCal',
