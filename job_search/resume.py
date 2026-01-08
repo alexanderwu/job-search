@@ -230,5 +230,6 @@ if __name__ == "__main__":
     # P_resume = P_RAW / 'AW_Roche_Resume.md'
     # P_resume = Path('data/raw') / 'AW_Healthcare_Resume.md'
     # P_resume = Path('data/raw') / 'Alex_Wu_Resume - RWD Programmer.md'
-    P_resume = Path('data/raw') / 'Alex_Wu_Verily_Resume.md'
+    # P_resume = Path('data/raw') / 'Alex_Wu_Verily_Resume.md'
+    P_resume = Path('data/raw') / 'AW_Resume.md'
     convert_resume(P_resume, keep_docx=False, pagebreak=True)

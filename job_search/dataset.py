@@ -81,7 +81,7 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     P_save.parent.mkdir(parents=True, exist_ok=True)
     query_url = load_query_url(path_query)
     if bare:
-        print(query_url)
+        print(path_query)
 
     if not overwrite and P_save.exists():
         log(P_save).info(f"{P_save} already exists...")
@@ -111,7 +111,6 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     log(P_save).info(_query_str)
 
     if bare:
-        print(query_url)
         scroll_jobs_outer_html = ""
         _title = f"{P_save.stem} (N=)"
         _data = dict(body=scroll_jobs_outer_html, title=_title, description=query_url)
@@ -435,18 +434,27 @@ def scroll_bottom(driver, scroll_pause_time=SCROLL_PAUSE_TIME, wait_time=WAIT_TI
         last_height = new_height
 
 
-def extract_job_description(root, to_markdown=True) -> str:
-    def _sanitize(string: None | str) -> str:
-        if string is None:
-            return ''
-        return string.replace(u'\xa0', ' ').replace(u'\u200b', ' ').replace(u'\u202f', ' ').replace('’', "'")
-    _elem = root.xpath('//article')
-    _html_string = lxml.html.tostring(_elem).decode(errors='ignore')
-    job_description = _sanitize(_html_string)
-    if to_markdown:
-        job_description = md(job_description, heading_style='ATX')
-    return job_description
+# def extract_job_description(root, to_markdown=True) -> str:
+#     def _sanitize(string: None | str) -> str:
+#         if string is None:
+#             return ''
+#         return string.replace(u'\xa0', ' ').replace(u'\u200b', ' ').replace(u'\u202f', ' ').replace('’', "'")
+#     _elem = root.xpath('//article')
+#     _html_string = lxml.html.tostring(_elem).decode(errors='ignore')
+#     job_description = _sanitize(_html_string)
+#     if to_markdown:
+#         job_description = md(job_description, heading_style='ATX')
+#     return job_description
 
+
+def extract_job_description(root, to_markdown=True) -> str:
+    _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
+    next_data_dict = json.loads(_next_data.text_content())
+    next_data_job = next_data_dict['props']['pageProps']['job']
+    data_job_description = next_data_job['job_information']['description']
+    if to_markdown:
+        data_job_description = md(data_job_description, heading_style='ATX')
+    return data_job_description.replace(u'\xa0', ' ').replace(u'\u200b', ' ').replace(u'\u202f', ' ').replace('’', "'")
 
 def extract_job_info(root) -> dict:
     _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
@@ -708,7 +716,8 @@ if __name__ == "__main__":
     #     P_QUERIES / ('SW_Remote.txt'),
     ]
     for P_query in P_query_list:
-        P_save = main0(P_query, overwrite=False, bare=False)  # Path('data/2025-10-11/DS.html')
+        # P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
+        P_save = P_DATA / 'processed/2026-01-01/DS_NorCal' / 'DS_NorCal.html'
         main1(P_save, proxy=True)
         # main2(P_save)
         # main3(P_save)
