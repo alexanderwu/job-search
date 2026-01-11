@@ -49,11 +49,14 @@ dependencies = [
     "seleniumbase>=4.44.19",
     "sqlalchemy>=2.0.44",
     "tqdm>=4.67.1",
+    "typer>=0.21.1",
     "typesense>=1.1.1",
     "webdriver-manager>=4.0.2",
 ]
 requires-python = ">=3.12"
 
+[project.scripts]
+job_search = "job_search.cli:app"
 
 [tool.ruff]
 line-length = 99
