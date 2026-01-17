@@ -2,51 +2,51 @@
 Download job description
 """
 #!/usr/bin/env python3
-from textwrap import dedent
+from functools import cache
+from itertools import chain
 import json
 import logging
 import os
+from pathlib import Path
 import pickle
 import random
 import re
+from textwrap import dedent
 import time
 import urllib.parse
-from functools import cache
-from itertools import chain
-from pathlib import Path
-from textwrap import dedent
 from warnings import filterwarnings
 
+from botasaurus.user_agent import UserAgent
+from botasaurus_requests import request
+import lxml
 import lxml.html
 from markdownify import markdownify as md
+
 # from markdown_it import MarkdownIt
 # from mdit_py_plugins.front_matter import front_matter_plugin
 # from mdit_py_plugins.wordcount import wordcount_plugin
 import numpy as np
 import pandas as pd
+from selenium.webdriver.common.by import By
 from tqdm import TqdmExperimentalWarning
 from tqdm.rich import tqdm
-filterwarnings("ignore", category=TqdmExperimentalWarning)
-from botasaurus_requests import request
-from botasaurus.user_agent import UserAgent
-from selenium.webdriver.common.by import By
-from numpy.typing import ArrayLike
 
-from job_search.utils import is_running_wsl
 from job_search.config import (
-    VIEW_JOB_HTTPS,
-    QUERY_LIST,
-    P_DATA,
-    P_QUERIES,
-    P_CACHE,
-    P_JOBS,
-    P_URLS,
-    P_DICT,
     P_ALL_COMPANY_URLS,
+    P_CACHE,
+    P_DATA,
     P_DATE,
+    P_DICT,
+    P_JOBS,
+    P_QUERY,
     P_STEM,
+    P_URLS,
+    QUERY_LIST,
+    VIEW_JOB_HTTPS,
 )
+from job_search.utils import is_running_wsl
 
+filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 # Selenium options
 SCROLL_PAUSE_TIME = 0.5
@@ -131,7 +131,7 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
         scroll_jobs = driver.wait_for_element(_SCROLL_XPATH)
         scroll_jobs_outer_html = scroll_jobs.get_attribute("outerHTML")
     # except TimeoutException:
-    except:
+    except Exception:
         log(P_save).warning(f"Could not save {P_save}...")
         scroll_jobs_outer_html = ''
         input("Press ENTER to continue...")
@@ -276,7 +276,7 @@ def main2(P_save: Path):
 
     driver = init_driver(headless=False)
 
-    P_ALL = load_query_url(P_QUERIES / 'ALL.txt')
+    P_ALL = load_query_url(P_QUERY / 'ALL.txt')
     ALL_SEARCH_STATE = P_ALL.split('?', maxsplit=1)[1]
     for company, chash in (pbar := tqdm(company_chash_list)):
         pbar.set_description(f"{(company)}")
@@ -304,7 +304,7 @@ def main2(P_save: Path):
             job_cards = driver.wait_for_element(_GRID_XPATH)
             job_cards_outer_html = job_cards.get_attribute("outerHTML")
         # except TimeoutException:
-        except:
+        except Exception:
             job_cards_outer_html = ''
 
         _data = dict(body=job_cards_outer_html, title=company, description=company_url)
@@ -317,8 +317,8 @@ def main2(P_save: Path):
 def main3(P_save: Path):
     """Scrape other job urls and descriptions from companies with multiple job postings"""
     log(P_save).info(f"Scraping the rest of job descriptions and metadata from {P_save}...")
-    # P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
-    P_companies = P_save.parents[3] / f"cache/ALL_company_urls"
+    # P_companies = P_save.parents[3] / "cache/{P_save.stem}_company_urls"
+    P_companies = P_save.parents[3] / "cache/ALL_company_urls"
 
     df = load_jdf(P_save)
     df2 = df.query('_len >= 3').reset_index(drop=True)
@@ -353,13 +353,13 @@ def main4(P_save: Path, obsidian=False):
     job_descriptions = []
     frontmatters = []
     if obsidian:
-        P_OBSIDIAN_JOBS = Path(fr"C:\Users\alexa\Dropbox\DropSyncFiles\Obsidian Vault\Companies\jobs")
+        P_OBSIDIAN_JOBS = Path(r"C:\Users\alexa\Dropbox\DropSyncFiles\Obsidian Vault\Companies\jobs")
         log(P_save).info(f"Syncing {P_OBSIDIAN_JOBS}...")
         for path in P_OBSIDIAN_JOBS.glob('*.md'):
             path.unlink()
 
     _list = list(zip(df['position'], df['hash'], df[YAML_COLS].to_dicts()))
-    for position, hash, row_dict in (pbar := tqdm(_list)):
+    for position, hash, row_dict in (_pbar := tqdm(_list)):
         _filename = f"{position}.{hash}.md"
         P_src = P_JOBS / _filename
         P_dst = P_save_jobs / _filename
@@ -501,7 +501,7 @@ def selenium_get(url, wait_time=2, proxy=False):
     try:
         # wait.until(EC.visibility_of_element_located((By.XPATH, ".//article")))
         driver.wait_for_element(".//article""")
-    except:
+    except Exception:
         pass
     # body = wait.until(EC.visibility_of_element_located((By.XPATH, "/body")))
     # outerHTML = body.get_attribute("outerHTML")
@@ -600,9 +600,9 @@ def load_cdf(P_companies: Path = P_ALL_COMPANY_URLS, verbose=False) -> pd.DataFr
         cdf = pd.read_parquet(_P_cdf_parquet)
         return cdf
 
-    HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time',
-                'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
-                '_job_posting']
+    # _HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time',
+    #             'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
+    #             '_job_posting']
 
     company2cdf = {}
 
@@ -699,25 +699,25 @@ def log(P_query: Path) -> logging.Logger:
 
 if __name__ == "__main__":
     P_query_list = [
-        # P_QUERIES / ('ALL.txt'),
-        # P_QUERIES / ('DS_NorCal_Remote.txt'),
-        # P_QUERIES / ('DS_NorCal_Healthcare.txt'),
-        # P_QUERIES / ('DS.txt'),
-        P_QUERIES / ('DS_NorCal.txt'),
-        # P_QUERIES / ('Healthcare.txt'),
-        # P_QUERIES / ('SF.txt'),
-    #     P_QUERIES / ('SW.txt'),
-    #     P_QUERIES / ('DS_Remote.txt'),
-    #     P_QUERIES / ('DS_Socal.txt'),
-    #     P_QUERIES / ('DS_Seattle.txt'),
-    #     P_QUERIES / ('DS_NY.txt'),
-    #     P_QUERIES / ('DS_Midwest.txt'),
-    #     P_QUERIES / ('DS_DC.txt'),
-    #     P_QUERIES / ('SW_Remote.txt'),
+        # P_QUERY / ('ALL.txt'),
+        # P_QUERY / ('DS_NorCal_Remote.txt'),
+        # P_QUERY / ('DS_NorCal_Healthcare.txt'),
+        # P_QUERY / ('DS.txt'),
+        P_QUERY / ('DS_NorCal.txt'),
+        # P_QUERY / ('Healthcare.txt'),
+        # P_QUERY / ('SF.txt'),
+    #     P_QUERY / ('SW.txt'),
+    #     P_QUERY / ('DS_Remote.txt'),
+    #     P_QUERY / ('DS_Socal.txt'),
+    #     P_QUERY / ('DS_Seattle.txt'),
+    #     P_QUERY / ('DS_NY.txt'),
+    #     P_QUERY / ('DS_Midwest.txt'),
+    #     P_QUERY / ('DS_DC.txt'),
+    #     P_QUERY / ('SW_Remote.txt'),
     ]
     for P_query in P_query_list:
-        # P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
-        P_save = P_DATA / 'processed/2026-01-01/DS_NorCal' / 'DS_NorCal.html'
+        P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
+        # P_save = P_DATA / 'processed/2026-01-01/DS_NorCal' / 'DS_NorCal.html'
         main1(P_save, proxy=True)
         # main2(P_save)
         # main3(P_save)
@@ -726,8 +726,8 @@ if __name__ == "__main__":
 #%%
 # import job_search.dataset as dataset
 # from job_search.dataset import main0, main1
-# from job_search.config import P_QUERIES
-# P_query = P_QUERIES / ('ALL.txt')
+# from job_search.config import P_QUERY
+# P_query = P_QUERY / ('ALL.txt')
 # P_save = main0(P_query, overwrite=False, bare=False)  # Path('data/2025-10-11/DS.html')
 # main1(P_save)
 # dataset.load_jdf(P_save)

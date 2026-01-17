@@ -21,6 +21,7 @@ from mdit_py_plugins.front_matter import front_matter_plugin
 
 
 P_ALEX_RESUME_MD = Path('data/Alexander_Wu_Resume.md')
+P_RAW = Path('data/raw')
 
 
 def convert_markdown(path_md: Path | str, keep_docx=True, resume=False, pagebreak=False, verbose=True):
@@ -55,6 +56,7 @@ def convert_markdown(path_md: Path | str, keep_docx=True, resume=False, pagebrea
     # P_docx = Path('data/_') / f"{P_md.stem}"
     if verbose:
         print(f'Saving to {P_docx}')
+    document.save(f'{P_docx}.docx')
     convert_pdf(document, P_docx, keep_docx=keep_docx)
 
 
@@ -103,9 +105,22 @@ def analyze(path_md: Path | str = P_ALEX_RESUME_MD, explode=True) -> pd.DataFram
     return mdf
 
 
-def convert_pdf(document: Document, name: str, keep_docx=False):
-    document.save(f'{name}.docx')
-    docx2pdf.convert(f'{name}.docx', f'{name}.pdf')
+def convert_pdf(document: Document, name: Path | str, keep_docx=False):
+    """Converts a DOCX file to PDF using LibreOffice command line."""
+    import subprocess
+
+    # docx2pdf.convert(f'{name}.docx', f'{name}.pdf')
+    command = ["swriter", "--headless", "--convert-to", "pdf", "--outdir", P_RAW, name]
+    try:
+        subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+        print(f"Successfully converted {name} to PDF.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during conversion: {e.stderr.decode()}")
+    except FileNotFoundError:
+        print("LibreOffice not found. Make sure it is installed and in your PATH.")
+    except subprocess.TimeoutExpired:
+        print("Conversion timed out.")
+
     if not keep_docx:
         Path(f'{name}.docx').unlink()
 
@@ -124,9 +139,9 @@ def _init_document(document, header=True):
         pp.paragraph_format.tab_stops.add_tab_stop(Inches(0.5), WD_TAB_ALIGNMENT.LEFT)
         pp.paragraph_format.tab_stops.add_tab_stop(Inches(3.5), WD_TAB_ALIGNMENT.CENTER)
         pp.paragraph_format.tab_stops.add_tab_stop(Inches(6.5), WD_TAB_ALIGNMENT.RIGHT)
-        rr = pp.add_run("\tAlexander Wu\talexander.wu7@gmail.com\tPage ")
+        rr = pp.add_run("\tAlexander Wu\talexander.wu7@gmail.com\tPage 2\n")
         rr.font.color.rgb = RGBColor(0x99, 0x99, 0x99)
-        _add_page_number(rr)
+        # _add_page_number(rr)
 
     normal_style = document.styles['Normal']
     normal_style.font.name = 'Calibri'
@@ -211,6 +226,7 @@ def _add_page_number(run, separate=True):
         run._r.append(_create_xml('w:fldChar', 'w:fldCharType', 'separate'))
     run._r.append(_create_xml('w:fldChar', 'w:fldCharType', 'end'))
     run._r.append(_create_xml('w:br'))
+    # run.font.color.rgb = RGBColor(0x99, 0x99, 0x99)
 
 def _create_xml(name, attr=None, val=None):
     element = OxmlElement(name)
@@ -231,5 +247,7 @@ if __name__ == "__main__":
     # P_resume = Path('data/raw') / 'AW_Healthcare_Resume.md'
     # P_resume = Path('data/raw') / 'Alex_Wu_Resume - RWD Programmer.md'
     # P_resume = Path('data/raw') / 'Alex_Wu_Verily_Resume.md'
-    P_resume = Path('data/raw') / 'AW_Resume.md'
-    convert_resume(P_resume, keep_docx=False, pagebreak=True)
+    # P_resume = Path('data/raw') / 'AW_Resume.md'
+    P_resume = Path('data/interim') / 'Alex_Wu_Resume - Regeneron.md'
+    # convert_resume(P_resume, keep_docx=False, pagebreak=True)
+    convert_resume(P_resume, keep_docx=True, pagebreak=True)
