@@ -1,6 +1,7 @@
 """
 Download job description
 """
+
 #!/usr/bin/env python3
 from functools import cache
 from itertools import chain
@@ -68,9 +69,11 @@ def init_driver(headless=True, proxy=False):
         driver = Driver(uc=True, proxy=PROXY, headless=headless)
     return driver
 
+
 ################################################################################
 # Main Functions
 ################################################################################
+
 
 def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     """
@@ -91,19 +94,25 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     P_query = P_save.parent / f"{P_save.stem}.txt"
     P_json = P_save.parent / f"{P_save.stem}.json"
     log(P_save).info(f"Preparing {P_save} outerHTML from {P_query}...")
-    with open(P_query, 'w') as f:
+    with open(P_query, "w") as f:
         f.write(query_url)
-    with open(P_json, 'w') as f:
+    with open(P_json, "w") as f:
         json.dump(query_dict, f, indent=4)
+
     def _format_loc(loc):
-        _address = loc['address_components'][0]['long_name'].replace('+', ' ')
-        _radius = f" - {loc['options']['radius']} {loc['options']['radius_unit']}" if loc['options'].keys() else ''
-        _workplaces = " | ".join(loc['workplace_types'])
+        _address = loc["address_components"][0]["long_name"].replace("+", " ")
+        _radius = (
+            f" - {loc['options']['radius']} {loc['options']['radius_unit']}"
+            if loc["options"].keys()
+            else ""
+        )
+        _workplaces = " | ".join(loc["workplace_types"])
         loc_formatted = f"{_address}{_radius}. {_workplaces}"
         return loc_formatted
-    _job_title_query = query_dict['jobTitleQuery'].replace('+', ' ').replace('AND', '\n\tAND')
-    _locations = '\n\t'.join([_format_loc(loc) for loc in query_dict['locations']])
-    _commitment_types = ", ".join(query_dict['commitmentTypes']).replace('+', ' ')
+
+    _job_title_query = query_dict["jobTitleQuery"].replace("+", " ").replace("AND", "\n\tAND")
+    _locations = "\n\t".join([_format_loc(loc) for loc in query_dict["locations"]])
+    _commitment_types = ", ".join(query_dict["commitmentTypes"]).replace("+", " ")
     _query_str = dedent(f"""{_job_title_query}
         {_locations}
         {_commitment_types}
@@ -114,8 +123,8 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
         scroll_jobs_outer_html = ""
         _title = f"{P_save.stem} (N=)"
         _data = dict(body=scroll_jobs_outer_html, title=_title, description=query_url)
-        scroll_jobs_html = render_template(**_data).replace('</source>', '')
-        with open(P_save, 'w', encoding='utf-8') as f:
+        scroll_jobs_html = render_template(**_data).replace("</source>", "")
+        with open(P_save, "w", encoding="utf-8") as f:
             f.write(scroll_jobs_html)
         return P_save
 
@@ -133,12 +142,14 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     # except TimeoutException:
     except Exception:
         log(P_save).warning(f"Could not save {P_save}...")
-        scroll_jobs_outer_html = ''
+        scroll_jobs_outer_html = ""
         input("Press ENTER to continue...")
 
     # _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
     # N = len(lxml.html.fromstring(scroll_jobs_outer_html).xpath(_CLASS))
-    _grid = driver.find_element("div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']")
+    _grid = driver.find_element(
+        "div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']"
+    )
     N = len(_grid.find_elements(By.XPATH, "./*"))
     log(P_save).info(f"Saving {P_save} (N={N})...")
 
@@ -169,12 +180,13 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     # _title = f"{P_save.stem} (N={N}, N_expanded={N_expanded})"
     _title = f"{P_save.stem} (N={N})"
     _data = dict(body=scroll_jobs_outer_html, title=_title, description=query_url)
-    scroll_jobs_html = render_template(**_data).replace('</source>', '')
+    scroll_jobs_html = render_template(**_data).replace("</source>", "")
 
-    with open(P_save, 'w', encoding='utf-8') as f:
+    with open(P_save, "w", encoding="utf-8") as f:
         f.write(scroll_jobs_html)
 
     return P_save
+
 
 def main1(P_save: Path | str, proxy=False):
     """
@@ -191,15 +203,15 @@ def _save_dicts(df, P_save=None, proxy=False):
     P_JOBS.mkdir(exist_ok=True)
     P_DICT.mkdir(exist_ok=True)
 
-    df_identifier: pd.Series = (df['position'] + '.' + df['hash'])
+    df_identifier: pd.Series = df["position"] + "." + df["hash"]
     if P_save:
         P_jdf: Path = P_save.parent / f"{P_save.stem}_identifiers.txt"
         df_identifier.to_csv(P_jdf, index=False, header=None)
         log(P_save).info(f"Saved {P_jdf} (N={len(df)})...")
-    hash2identifier_dict: dict[pd.Series, pd.Series] = dict(zip(df['hash'], df_identifier))
+    hash2identifier_dict: dict[pd.Series, pd.Series] = dict(zip(df["hash"], df_identifier))
 
-    for url in (pbar := tqdm(VIEW_JOB_HTTPS + df['hash'])):
-        hash: str = url.split('/')[-1]
+    for url in (pbar := tqdm(VIEW_JOB_HTTPS + df["hash"])):
+        hash: str = url.split("/")[-1]
         identifier = hash2identifier_dict[hash]
         pbar.set_description(f"{identifier}")
         P_url = P_URLS / f"{identifier}.html"
@@ -212,8 +224,8 @@ def _save_dicts(df, P_save=None, proxy=False):
             url_get_content = requests_get(url, proxy=proxy)
             # url_get_content = selenium_get(url, proxy=False)
             # time.sleep(random.randint(2,4))
-            time.sleep(random.uniform(1,3))
-            with open(P_url, 'w', encoding='utf-8') as f:
+            time.sleep(random.uniform(1, 3))
+            with open(P_url, "w", encoding="utf-8") as f:
                 f.write(url_get_content)
 
             root = lxml.html.fromstring(url_get_content)
@@ -223,12 +235,12 @@ def _save_dicts(df, P_save=None, proxy=False):
             else:
                 _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
                 next_data_dict = json.loads(_next_data.text_content())
-            with open(P_dict, 'wb') as f:
+            with open(P_dict, "wb") as f:
                 pickle.dump(next_data_dict, f)
         else:
-            with open(P_url, encoding='utf-8') as f:
+            with open(P_url, encoding="utf-8") as f:
                 url_get_content = f.read()
-            if url_get_content == '':
+            if url_get_content == "":
                 print(P_url)
                 continue
         root = lxml.html.fromstring(url_get_content)
@@ -238,7 +250,7 @@ def _save_dicts(df, P_save=None, proxy=False):
             print(P_url)
             continue
         else:
-            with open(P_md, 'w', encoding='utf-8') as f:
+            with open(P_md, "w", encoding="utf-8") as f:
                 f.write(job_description)
 
 
@@ -250,18 +262,23 @@ def main2(P_save: Path):
 
     log(P_save).info(f"Scraping job urls from companies with multiple listings from {P_save}...")
 
-    HIRING_CAFE_HTTPS = 'https://hiring.cafe'
+    HIRING_CAFE_HTTPS = "https://hiring.cafe"
 
     df = load_jdf(P_save)
     # df2 = df.query('_len > 1').reset_index(drop=True)
     # df2_company = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
     # company_chash_list = list(zip(df2_company, df2['chash']))
-    df4 = df.query('_len >= 4').reset_index(drop=True)
-    df4_company: pd.DataFrame = df4['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
-    company_chash_list = list(zip(df4_company, df4['chash']))
+    df4 = df.query("_len >= 4").reset_index(drop=True)
+    df4_company: pd.DataFrame = (
+        df4["company"]
+        .str.replace(r"[/|:\\*]", "_", regex=True)
+        .str.replace('"', "'")
+        .str.replace("’", "'")
+    )
+    company_chash_list = list(zip(df4_company, df4["chash"]))
 
     if len(company_chash_list) == 0:
-        log(P_save).warning('No companies with multiple listings... ')
+        log(P_save).warning("No companies with multiple listings... ")
         return
 
     P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
@@ -272,12 +289,12 @@ def main2(P_save: Path):
     #     log(P_save).info('All downloaded...')
     #     return
 
-    log(P_save).info(f'Downloading {len(company_chash_list)} companies...')
+    log(P_save).info(f"Downloading {len(company_chash_list)} companies...")
 
     driver = init_driver(headless=False)
 
-    P_ALL = load_query_url(P_QUERY / 'ALL.txt')
-    ALL_SEARCH_STATE = P_ALL.split('?', maxsplit=1)[1]
+    P_ALL = load_query_url(P_QUERY / "ALL.txt")
+    ALL_SEARCH_STATE = P_ALL.split("?", maxsplit=1)[1]
     for company, chash in (pbar := tqdm(company_chash_list)):
         pbar.set_description(f"{(company)}")
         P_company_url = P_ALL_COMPANY_URLS / f"{company}.html"
@@ -287,14 +304,16 @@ def main2(P_save: Path):
             # _rand_refresh = random.randint(1,2)
             _rand_refresh = 1
             # _rand_refresh = 365
-            if (datetime.now() - datetime.fromtimestamp(P_company_url.stat().st_mtime)).days < _rand_refresh:
+            if (
+                datetime.now() - datetime.fromtimestamp(P_company_url.stat().st_mtime)
+            ).days < _rand_refresh:
                 continue
 
         company_url = f"{HIRING_CAFE_HTTPS}/?company={chash}&{ALL_SEARCH_STATE}"
         driver.get(company_url)
 
         time.sleep(2)
-        _rand_wait_time = random.randint(2,3)
+        _rand_wait_time = random.randint(2, 3)
         # _rand_wait_time = random.randint(4,6)
         scroll_bottom(driver, wait_time=_rand_wait_time)
 
@@ -305,12 +324,12 @@ def main2(P_save: Path):
             job_cards_outer_html = job_cards.get_attribute("outerHTML")
         # except TimeoutException:
         except Exception:
-            job_cards_outer_html = ''
+            job_cards_outer_html = ""
 
         _data = dict(body=job_cards_outer_html, title=company, description=company_url)
         output_html = render_template(**_data)
 
-        with open(P_company_url, 'w', encoding='utf-8') as f:
+        with open(P_company_url, "w", encoding="utf-8") as f:
             f.write(output_html)
 
 
@@ -321,12 +340,17 @@ def main3(P_save: Path):
     P_companies = P_save.parents[3] / "cache/ALL_company_urls"
 
     df = load_jdf(P_save)
-    df2 = df.query('_len >= 3').reset_index(drop=True)
-    _df2_companies = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
+    df2 = df.query("_len >= 3").reset_index(drop=True)
+    _df2_companies = (
+        df2["company"]
+        .str.replace(r"[/|:\\*]", "_", regex=True)
+        .str.replace('"', "'")
+        .str.replace("’", "'")
+    )
     cdf2_dict = {}
     for company in _df2_companies:
         P_company = P_ALL_COMPANY_URLS / f"{company}.html"
-        with open(P_company, 'r', encoding='utf-8') as f:
+        with open(P_company, "r", encoding="utf-8") as f:
             html_string = f.read()
 
         company_df = load_jdf(html_string)
@@ -343,9 +367,20 @@ def main3(P_save: Path):
 def main4(P_save: Path, obsidian=False):
     """Sync with Obsidian"""
     import yaml
-    YAML_COLS = ['company', 'title', 'hours', 'onsite', 'full_time',
-                'lower', 'median', 'upper', 'bay', 'skills',]
-    P_save_jobs = P_save.parent / f'{P_save.stem}_jobs'
+
+    YAML_COLS = [
+        "company",
+        "title",
+        "hours",
+        "onsite",
+        "full_time",
+        "lower",
+        "median",
+        "upper",
+        "bay",
+        "skills",
+    ]
+    P_save_jobs = P_save.parent / f"{P_save.stem}_jobs"
     P_save_jobs.mkdir(exist_ok=True)
     df = load_df(P_save)
     log(P_save).info(f"Syncing job descriptions into {P_save_jobs} (N={len(df)})...")
@@ -353,44 +388,52 @@ def main4(P_save: Path, obsidian=False):
     job_descriptions = []
     frontmatters = []
     if obsidian:
-        P_OBSIDIAN_JOBS = Path(r"C:\Users\alexa\Dropbox\DropSyncFiles\Obsidian Vault\Companies\jobs")
+        P_OBSIDIAN_JOBS = Path(
+            r"C:\Users\alexa\Dropbox\DropSyncFiles\Obsidian Vault\Companies\jobs"
+        )
         log(P_save).info(f"Syncing {P_OBSIDIAN_JOBS}...")
-        for path in P_OBSIDIAN_JOBS.glob('*.md'):
+        for path in P_OBSIDIAN_JOBS.glob("*.md"):
             path.unlink()
 
-    _list = list(zip(df['position'], df['hash'], df[YAML_COLS].to_dicts()))
+    _list = list(zip(df["position"], df["hash"], df[YAML_COLS].to_dicts()))
     for position, hash, row_dict in (_pbar := tqdm(_list)):
         _filename = f"{position}.{hash}.md"
         P_src = P_JOBS / _filename
         P_dst = P_save_jobs / _filename
-        if not P_src.exists():#
-            print(P_src)#
+        if not P_src.exists():  #
+            print(P_src)  #
             continue
         assert P_src.exists()
         _row_yaml = yaml.dump(row_dict, sort_keys=False)
-        _url = f'{VIEW_JOB_HTTPS}{hash}'
+        _url = f"{VIEW_JOB_HTTPS}{hash}"
         frontmatter = f"---\n{_row_yaml}---\n[[Jobs List.base]] | {_url}\n\n"
-        with open(P_src, encoding='utf-8') as f:
-            job_description = f.read().replace(u'\xa0', ' ').replace(u'\u200b', ' ').replace(u'\u202f', ' ').replace('’', "'")
-        with open(P_dst, 'w', encoding='utf-8') as f:
+        with open(P_src, encoding="utf-8") as f:
+            job_description = (
+                f.read()
+                .replace("\xa0", " ")
+                .replace("\u200b", " ")
+                .replace("\u202f", " ")
+                .replace("’", "'")
+            )
+        with open(P_dst, "w", encoding="utf-8") as f:
             f.write(f"{frontmatter}{job_description}")
 
         if obsidian:
-            with open(P_OBSIDIAN_JOBS / _filename, 'w', encoding='utf-8') as f:
+            with open(P_OBSIDIAN_JOBS / _filename, "w", encoding="utf-8") as f:
                 f.write(f"{frontmatter}{job_description}")
         frontmatters.append(frontmatter)
         job_descriptions.append(job_description)
 
-    P_job_descriptions = P_save.parent / f'{P_save.stem}_job_descriptions.txt'
+    P_job_descriptions = P_save.parent / f"{P_save.stem}_job_descriptions.txt"
     log(P_save).info(f"Writing {P_job_descriptions}...")
-    job_descriptions_txt = '\n\n---\n\n'.join(job_descriptions)
-    with open(P_job_descriptions, 'w', encoding='utf-8') as f:
+    job_descriptions_txt = "\n\n---\n\n".join(job_descriptions)
+    with open(P_job_descriptions, "w", encoding="utf-8") as f:
         f.write(job_descriptions_txt)
 
 
 def load_query_url(path: Path | str) -> str:
     path = Path(path)
-    if path.suffix == '.json':
+    if path.suffix == ".json":
         with open(path) as f:
             query_str = f.read()
     else:
@@ -404,6 +447,7 @@ def load_query_url(path: Path | str) -> str:
 
 def parse_query_url(query_url: str) -> dict:
     import json
+
     _query_parsed = query_url.removeprefix("https://hiring.cafe/?searchState=")
     _query_stripped: str = urllib.parse.unquote(_query_parsed)
     query_dict: dict = json.loads(_query_stripped)
@@ -450,16 +494,22 @@ def scroll_bottom(driver, scroll_pause_time=SCROLL_PAUSE_TIME, wait_time=WAIT_TI
 def extract_job_description(root, to_markdown=True) -> str:
     _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
     next_data_dict = json.loads(_next_data.text_content())
-    next_data_job = next_data_dict['props']['pageProps']['job']
-    data_job_description = next_data_job['job_information']['description']
+    next_data_job = next_data_dict["props"]["pageProps"]["job"]
+    data_job_description = next_data_job["job_information"]["description"]
     if to_markdown:
-        data_job_description = md(data_job_description, heading_style='ATX')
-    return data_job_description.replace(u'\xa0', ' ').replace(u'\u200b', ' ').replace(u'\u202f', ' ').replace('’', "'")
+        data_job_description = md(data_job_description, heading_style="ATX")
+    return (
+        data_job_description.replace("\xa0", " ")
+        .replace("\u200b", " ")
+        .replace("\u202f", " ")
+        .replace("’", "'")
+    )
+
 
 def extract_job_info(root) -> dict:
     _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
     next_data_dict = json.loads(_next_data.text_content())
-    next_data_job = next_data_dict['props']['pageProps']['job']
+    next_data_job = next_data_dict["props"]["pageProps"]["job"]
     # _next_data_job_description = next_data_job['job_information']['description']
     # data_job_description = md(_next_data_job_description, heading_style='ATX')
     return next_data_job
@@ -470,10 +520,10 @@ def requests_get(url, proxy=False):
     # _user_agent = UserAgent().get_random_cycled()
     _user_agent = UserAgent.user_agent_106
     _headers = {
-        'User-Agent': _user_agent,
-        'Referer': 'https://hiring.cafe/',
-        'Origin': 'https://hiring.cafe',
-        'Sec-Fetch-Dest': 'empty',
+        "User-Agent": _user_agent,
+        "Referer": "https://hiring.cafe/",
+        "Origin": "https://hiring.cafe",
+        "Sec-Fetch-Dest": "empty",
         # 'proxy': {
         #     'http': PROXY,
         #     'https': PROXY,
@@ -482,9 +532,9 @@ def requests_get(url, proxy=False):
     if proxy:
         ii = random.randint(1, 44745)
         PROXY = f"byfdawqz-US-{ii}:fhx888ooginw@p.webshare.io:80"
-        _headers['proxy'] = {
-            'http': PROXY,
-            'https': PROXY,
+        _headers["proxy"] = {
+            "http": PROXY,
+            "https": PROXY,
         }
     response = request.get(url, headers=_headers)
     html_string = response.content.decode()
@@ -500,7 +550,7 @@ def selenium_get(url, wait_time=2, proxy=False):
     scroll_bottom(driver, wait_time=wait_time)
     try:
         # wait.until(EC.visibility_of_element_located((By.XPATH, ".//article")))
-        driver.wait_for_element(".//article""")
+        driver.wait_for_element(".//article")
     except Exception:
         pass
     # body = wait.until(EC.visibility_of_element_located((By.XPATH, "/body")))
@@ -511,15 +561,15 @@ def selenium_get(url, wait_time=2, proxy=False):
 
 
 def identifier_get(identifier, save=False, verbose=True):
-    hash = identifier.rsplit('.', 1)[-1]
+    hash = identifier.rsplit(".", 1)[-1]
     url = VIEW_JOB_HTTPS + hash
     # html_source = selenium_get(url)
     html_source = requests_get(url)
     if save:
         P_url = P_URLS / f"{identifier}.html"
         if verbose:
-            print(f'Writing to {P_url}')
-        with open(P_url, 'w', encoding='utf-8') as f:
+            print(f"Writing to {P_url}")
+        with open(P_url, "w", encoding="utf-8") as f:
             f.write(html_source)
     else:
         return html_source
@@ -530,65 +580,101 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
     _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
     html_string = P_save
     if isinstance(P_save, Path):
-        with open(P_save, encoding='utf-8') as f:
+        with open(P_save, encoding="utf-8") as f:
             html_string = f.read()
 
     company_ = None
     if html_string:
         tree = lxml.html.fromstring(html_string)
-        _title_elem = tree.xpath('head/title')
+        _title_elem = tree.xpath("head/title")
         if _title_elem:
             company_ = f"{_title_elem[0].text}_"
         all_cards = tree.xpath(_CLASS)
     else:
         path_list = [P_DATA / f"{query}.html" for query in QUERY_LIST]
-        html_list = [open(path, encoding='utf-8').read() for path in path_list]
+        html_list = [open(path, encoding="utf-8").read() for path in path_list]
         tree_list = [lxml.html.fromstring(html) for html in html_list]
         cards_list = [tree.xpath(_CLASS) for tree in tree_list]
         all_cards = chain.from_iterable(cards_list)
 
-    use_chash = (company_ is None) or ('(N=' in company_)
+    use_chash = (company_ is None) or ("(N=" in company_)
     raw_texts_list = []
     for card in all_cards:
-        raw_texts = [x.strip() for x in card.xpath('.//span/text()')]
+        raw_texts = [x.strip() for x in card.xpath(".//span/text()")]
         if not use_chash:
             raw_texts = raw_texts[1:]
         if not re.match(r"\d\d?[y|mo|w|d|h]", raw_texts[0]):
-            raw_texts.insert(0, '0h')
-        if not raw_texts[3].endswith('yr') and not raw_texts[3].endswith('mo') and not raw_texts[3].endswith('wk') and not raw_texts[3].endswith('hr'):
-            raw_texts.insert(3, '-')
+            raw_texts.insert(0, "0h")
+        if (
+            not raw_texts[3].endswith("yr")
+            and not raw_texts[3].endswith("mo")
+            and not raw_texts[3].endswith("wk")
+            and not raw_texts[3].endswith("hr")
+        ):
+            raw_texts.insert(3, "-")
         if not use_chash:
             raw_texts.insert(6, company_)
             raw_texts.insert(7, None)
-        if not raw_texts[8].endswith('YOE'):
-            raw_texts.insert(8, '-')
-        if not raw_texts[9].endswith('Mgmt'):
-            raw_texts.insert(9, '-')
+        if not raw_texts[8].endswith("YOE"):
+            raw_texts.insert(8, "-")
+        if not raw_texts[9].endswith("Mgmt"):
+            raw_texts.insert(9, "-")
         if "Posting" in raw_texts[11]:
-            raw_texts.insert(11, '-')
-        url = card.xpath('div[2]/div/a[1]/@href')[0]
-        hash = url.split('/')[-1]
+            raw_texts.insert(11, "-")
+        url = card.xpath("div[2]/div/a[1]/@href")[0]
+        hash = url.split("/")[-1]
 
         if use_chash:
-            url2 = card.xpath('div[2]/div/a[2]/@href')[0]
-            chash = url2.removeprefix('/?company=').split('&', maxsplit=1)[0]
+            url2 = card.xpath("div[2]/div/a[2]/@href")[0]
+            chash = url2.removeprefix("/?company=").split("&", maxsplit=1)[0]
             raw_texts_list.append([*raw_texts[:14], hash, chash])
         else:
             raw_texts_list.append([*raw_texts[:14], hash])
     if use_chash:
-        _HEADER_COLS: list[str] = ['days', 'title', 'location', 'salary', 'onsite', 'full_time', 'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
-                    '_job_posting', '_views', 'hash', 'chash']
+        _HEADER_COLS: list[str] = [
+            "days",
+            "title",
+            "location",
+            "salary",
+            "onsite",
+            "full_time",
+            "company",
+            "company_summary",
+            "yoe",
+            "mgmt",
+            "job_summary",
+            "skills",
+            "_job_posting",
+            "_views",
+            "hash",
+            "chash",
+        ]
     else:
-        _HEADER_COLS: list[str] = ['days', 'title', 'location', 'salary', 'onsite', 'full_time', 'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
-                    '_job_posting', '_views', 'hash']
+        _HEADER_COLS: list[str] = [
+            "days",
+            "title",
+            "location",
+            "salary",
+            "onsite",
+            "full_time",
+            "company",
+            "company_summary",
+            "yoe",
+            "mgmt",
+            "job_summary",
+            "skills",
+            "_job_posting",
+            "_views",
+            "hash",
+        ]
     HEADER_COLS = np.array(_HEADER_COLS)
 
-    jdf = pd.DataFrame(raw_texts_list, columns=HEADER_COLS).replace(r'\s+', ' ', regex=True)
-    assert all(jdf['_job_posting'] == "Job Posting")
-    jdf['company'] = jdf['company'].str[:-1].str.replace('"', "'").str.replace('’', "'")
-    jdf = jdf.drop(columns=['_job_posting', '_views'])
+    jdf = pd.DataFrame(raw_texts_list, columns=HEADER_COLS).replace(r"\s+", " ", regex=True)
+    assert all(jdf["_job_posting"] == "Job Posting")
+    jdf["company"] = jdf["company"].str[:-1].str.replace('"', "'").str.replace("’", "'")
+    jdf = jdf.drop(columns=["_job_posting", "_views"])
     _BUTTONS_CLASS = ".//div[@class='flex justify-center space-x-2']/div"
-    jdf['_len'] = pd.Series([len(card.xpath(_BUTTONS_CLASS)) for card in all_cards])
+    jdf["_len"] = pd.Series([len(card.xpath(_BUTTONS_CLASS)) for card in all_cards])
     jdf = _feature_engineering(jdf)
     return jdf
 
@@ -596,7 +682,7 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
 @cache
 def load_cdf(P_companies: Path = P_ALL_COMPANY_URLS, verbose=False) -> pd.DataFrame:
     if P_companies == P_ALL_COMPANY_URLS:
-        _P_cdf_parquet = P_CACHE / 'cdf_2025-11-10.parquet'
+        _P_cdf_parquet = P_CACHE / "cdf_2025-11-10.parquet"
         cdf = pd.read_parquet(_P_cdf_parquet)
         return cdf
 
@@ -606,13 +692,13 @@ def load_cdf(P_companies: Path = P_ALL_COMPANY_URLS, verbose=False) -> pd.DataFr
 
     company2cdf = {}
 
-    companies_path_list = [p for p in P_companies.glob('*.html')]
+    companies_path_list = [p for p in P_companies.glob("*.html")]
     if verbose:
         companies_path_list = tqdm(companies_path_list)
     for path in companies_path_list:
         if os.stat(path).st_size < 3000:
             if verbose:
-                print(f'{path.stem} is empty...')
+                print(f"{path.stem} is empty...")
             continue
 
         _cdf = load_jdf(path)
@@ -625,43 +711,61 @@ def load_cdf(P_companies: Path = P_ALL_COMPANY_URLS, verbose=False) -> pd.DataFr
 
 @cache
 def load_df(P_save: Path = P_STEM) -> pd.DataFrame:
-    import polars as pl
     P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
     jdf = load_jdf(P_save)
     cdf = load_cdf(P_companies)
-    df = pd.concat([jdf, cdf]).drop_duplicates('hash')
-    df = pl.from_pandas(df)
+    df = pd.concat([jdf, cdf]).drop_duplicates("hash")
+    # df = pl.from_pandas(df)
     return df
-
 
 
 def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     def load_cities() -> pd.DataFrame:
-        SILICON_VALLEY = 'Silicon Valley'
-        cities = pd.read_csv(P_DATA / 'raw/cities.csv')[SILICON_VALLEY]
-        bay_cities = cities[~cities.str.startswith('#')].reset_index(drop=True)
+        SILICON_VALLEY = "Silicon Valley"
+        cities = pd.read_csv(P_DATA / "raw/cities.csv")[SILICON_VALLEY]
+        bay_cities = cities[~cities.str.startswith("#")].reset_index(drop=True)
         return bay_cities
 
-    df['hours'] = (df['days'].str.split(r'\D').str[0].astype(int)
-                   * df['days'].str.split(r'\d').str[-1].map({'h': 1, 'd': 24, 'w': 24*7, 'mo': 730, 'y': 24*365}))
-    df['position'] = (df['company'] + ' - ' + df['title']).str.replace(r'[/|:\\*?]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
-    df['_position'] = df['position'].str.lower()
-    df = df.sort_values(['position', 'hours', 'company_summary']).drop_duplicates(subset='_position').reset_index(drop=True)
+    df["hours"] = df["days"].str.split(r"\D").str[0].astype(int) * df["days"].str.split(r"\d").str[
+        -1
+    ].map({"h": 1, "d": 24, "w": 24 * 7, "mo": 730, "y": 24 * 365})
+    df["position"] = (
+        (df["company"] + " - " + df["title"])
+        .str.replace(r"[/|:\\*?]", "_", regex=True)
+        .str.replace('"', "'")
+        .str.replace("’", "'")
+    )
+    df["_position"] = df["position"].str.lower()
+    df = (
+        df.sort_values(["position", "hours", "company_summary"])
+        .drop_duplicates(subset="_position")
+        .reset_index(drop=True)
+    )
     # df = df.sort_values(['_hours', 'position', 'company_summary']).drop_duplicates(subset='hash').reset_index(drop=True)
 
-    df['location'] = df['location'].str.replace(', California', '').str.replace(', United States', '')
-    _salary_type = df['salary'].str.split('/').str[1]
-    _multiplier = (_salary_type == 'yr') + 12*(_salary_type == 'mo') + 2.080*(_salary_type == 'hr')
-    _salary_range = df['salary'].str.split('/').str[0].str.split('-')
-    df['lower'] = _salary_range.str[0].str[1:-1].replace('', None).pipe(pd.to_numeric, errors='coerce') * _multiplier
-    df['upper'] = _salary_range.str[-1].str[1:-1].replace('', None).pipe(pd.to_numeric, errors='coerce') * _multiplier
-    df['median'] = (df['lower'] + df['upper']) / 2
-    df['yoe'] = df['yoe'].str.split('+').str[0].pipe(pd.to_numeric, errors='coerce')
-    df['mgmt'] = df['mgmt'].str.split('+').str[0].pipe(pd.to_numeric, errors='coerce')
+    df["location"] = (
+        df["location"].str.replace(", California", "").str.replace(", United States", "")
+    )
+    _salary_type = df["salary"].str.split("/").str[1]
+    _multiplier = (
+        (_salary_type == "yr") + 12 * (_salary_type == "mo") + 2.080 * (_salary_type == "hr")
+    )
+    _salary_range = df["salary"].str.split("/").str[0].str.split("-")
+    df["lower"] = (
+        _salary_range.str[0].str[1:-1].replace("", None).pipe(pd.to_numeric, errors="coerce")
+        * _multiplier
+    )
+    df["upper"] = (
+        _salary_range.str[-1].str[1:-1].replace("", None).pipe(pd.to_numeric, errors="coerce")
+        * _multiplier
+    )
+    df["median"] = (df["lower"] + df["upper"]) / 2
+    df["yoe"] = df["yoe"].str.split("+").str[0].pipe(pd.to_numeric, errors="coerce")
+    df["mgmt"] = df["mgmt"].str.split("+").str[0].pipe(pd.to_numeric, errors="coerce")
 
     bay_cities = load_cities()
     regex_bay_cities = f"({'|'.join(bay_cities)})"
-    df['bay'] = df['location'].str.extractall(regex_bay_cities).groupby(level=0)[0].apply(tuple)
+    df["bay"] = df["location"].str.extractall(regex_bay_cities).groupby(level=0)[0].apply(tuple)
     # _series = df['location'].str.extractall(regex_bay_cities)
     # for i in range(4):
     #     df[f'bay{i}'] = _series[0].loc[:,i].reindex_like(df)#.fillna('')
@@ -676,18 +780,19 @@ def render_template(**kwargs):
 @cache
 def _template():
     from jinja2 import Environment, FileSystemLoader
-    env = Environment(loader=FileSystemLoader(P_DATA / 'external'))
-    JINJA_TEMPLATE = 'template.html'
+
+    env = Environment(loader=FileSystemLoader(P_DATA / "external"))
+    JINJA_TEMPLATE = "template.html"
     template = env.get_template(JINJA_TEMPLATE)
     return template
 
 
 @cache
 def log(P_query: Path) -> logging.Logger:
-    _filename = P_query.parent / f'{P_query.stem}.log'
+    _filename = P_query.parent / f"{P_query.stem}.log"
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
-    FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
+    FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
     file_handler = logging.FileHandler(filename=_filename)
     file_handler.setFormatter(logging.Formatter(FORMAT))
     console_handler = logging.StreamHandler()
@@ -703,17 +808,17 @@ if __name__ == "__main__":
         # P_QUERY / ('DS_NorCal_Remote.txt'),
         # P_QUERY / ('DS_NorCal_Healthcare.txt'),
         # P_QUERY / ('DS.txt'),
-        P_QUERY / ('DS_NorCal.txt'),
+        P_QUERY / ("DS_NorCal.txt"),
         # P_QUERY / ('Healthcare.txt'),
         # P_QUERY / ('SF.txt'),
-    #     P_QUERY / ('SW.txt'),
-    #     P_QUERY / ('DS_Remote.txt'),
-    #     P_QUERY / ('DS_Socal.txt'),
-    #     P_QUERY / ('DS_Seattle.txt'),
-    #     P_QUERY / ('DS_NY.txt'),
-    #     P_QUERY / ('DS_Midwest.txt'),
-    #     P_QUERY / ('DS_DC.txt'),
-    #     P_QUERY / ('SW_Remote.txt'),
+        #     P_QUERY / ('SW.txt'),
+        #     P_QUERY / ('DS_Remote.txt'),
+        #     P_QUERY / ('DS_Socal.txt'),
+        #     P_QUERY / ('DS_Seattle.txt'),
+        #     P_QUERY / ('DS_NY.txt'),
+        #     P_QUERY / ('DS_Midwest.txt'),
+        #     P_QUERY / ('DS_DC.txt'),
+        #     P_QUERY / ('SW_Remote.txt'),
     ]
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
@@ -723,7 +828,7 @@ if __name__ == "__main__":
         # main3(P_save)
         # main4(P_save, obsidian=False)
 
-#%%
+# %%
 # import job_search.dataset as dataset
 # from job_search.dataset import main0, main1
 # from job_search.config import P_QUERY
