@@ -1,8 +1,8 @@
+#!/usr/bin/env python3
 """
 Download job description
 """
 
-#!/usr/bin/env python3
 from functools import cache
 from itertools import chain
 import json

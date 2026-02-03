@@ -248,6 +248,12 @@ if __name__ == "__main__":
     # P_resume = Path('data/raw') / 'Alex_Wu_Resume - RWD Programmer.md'
     # P_resume = Path('data/raw') / 'Alex_Wu_Verily_Resume.md'
     # P_resume = Path('data/raw') / 'AW_Resume.md'
-    P_resume = Path('data/interim') / 'Alex_Wu_Resume - Regeneron.md'
+    # P_resume = Path('data/interim') / 'Alex_Wu_Resume - Regeneron.md'
+    # P_resume = Path('data/interim') / 'Alex_Wu_Capegemini_Resume.md'
+    # P_resume = Path('data/interim') / 'AW_Genentech_MDAE_Resume.md'
+    P_resume = Path('data/interim') / 'AW_Homeward_Resume.md'
     # convert_resume(P_resume, keep_docx=False, pagebreak=True)
+    # convert_resume(P_resume, keep_docx=True, pagebreak=True)
     convert_resume(P_resume, keep_docx=True, pagebreak=True)
+    #swriter --headless --convert-to pdf "data/interim/AW_Genentech_MDAE_Resume.docx" --outdir data/processed/
+    #swriter --headless --convert-to pdf "data/interim/AW_Homeward_Resume.docx" --outdir data/processed/
