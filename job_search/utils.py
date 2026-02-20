@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-from IPython.display import HTML
+from IPython.display import display, Markdown, HTML
 
 
 def reload(module=None):

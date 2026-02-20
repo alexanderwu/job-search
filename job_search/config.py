@@ -10,12 +10,13 @@ else:
 P_RAW = P_DATA / 'raw'
 P_EXTERNAL = P_DATA / 'external'
 P_PROCESSED = P_DATA / 'processed'
+P_RESUME = P_RAW / 'AW_Resume.md'
 
 HIRING_CAFE_HTTPS = "https://hiring.cafe"
 VIEW_JOB_HTTPS = "https://hiring.cafe/viewjob/"
 QUERY_LIST: list[str] = [
     DS_NORCAL_REMOTE := 'DS_NorCal_Remote',
-    DS_HEALTH := 'DS_healthcare',
+    DS_HEALTH := 'DS_Healthcare',
     DS_NORCAL := 'DS_NorCal',
     DS := 'DS',
     HEALTH := 'Healthcare',

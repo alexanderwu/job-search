@@ -46,7 +46,7 @@ def load_keywords():
 
 
 @cache
-def load_df(P_save: Path | str = P_STEM, polars=True) -> pd.DataFrame:
+def load_df(P_save: Path = P_STEM, polars=True) -> pd.DataFrame:
     P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
     jdf = load_jdf(P_save)
     cdf = load_cdf(P_companies)
@@ -192,7 +192,7 @@ def path_names(path: Path, glob='*', stem=True) -> pd.Series:
     return pd.Series([p.name for p in path.glob(glob)])
 
 # @cache
-def path_df(path: Path, glob='*') -> pd.Series:
+def path_df(path: Path, glob='*') -> pd.DataFrame:
     import os
     from datetime import datetime
     pdf = pd.DataFrame({

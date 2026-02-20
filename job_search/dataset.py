@@ -33,8 +33,8 @@ from tqdm import TqdmExperimentalWarning
 from tqdm.rich import tqdm
 
 from job_search.config import (
-    P_ALL_COMPANY_URLS,
-    P_CACHE,
+    # P_ALL_COMPANY_URLS,
+    # P_CACHE,
     P_DATA,
     P_DATE,
     P_DICT,
@@ -208,7 +208,7 @@ def _save_dicts(df, P_save=None, proxy=False):
         P_jdf: Path = P_save.parent / f"{P_save.stem}_identifiers.txt"
         df_identifier.to_csv(P_jdf, index=False, header=None)
         log(P_save).info(f"Saved {P_jdf} (N={len(df)})...")
-    hash2identifier_dict: dict[pd.Series, pd.Series] = dict(zip(df["hash"], df_identifier))
+    hash2identifier_dict = dict(zip(df["hash"], df_identifier))
 
     for url in (pbar := tqdm(VIEW_JOB_HTTPS + df["hash"])):
         hash: str = url.split("/")[-1]
@@ -221,8 +221,8 @@ def _save_dicts(df, P_save=None, proxy=False):
         if P_dict.exists():
             continue
         if not P_dict.exists():
-            url_get_content = requests_get(url, proxy=proxy)
-            # url_get_content = selenium_get(url, proxy=False)
+            # url_get_content = requests_get(url, proxy=proxy)
+            url_get_content = selenium_get(url, proxy=False)
             # time.sleep(random.randint(2,4))
             time.sleep(random.uniform(1, 3))
             with open(P_url, "w", encoding="utf-8") as f:
@@ -252,183 +252,6 @@ def _save_dicts(df, P_save=None, proxy=False):
         else:
             with open(P_md, "w", encoding="utf-8") as f:
                 f.write(job_description)
-
-
-def main2(P_save: Path):
-    """
-    Get outerHTML of job cards for companies with multiple job listings
-    """
-    from datetime import datetime
-
-    log(P_save).info(f"Scraping job urls from companies with multiple listings from {P_save}...")
-
-    HIRING_CAFE_HTTPS = "https://hiring.cafe"
-
-    df = load_jdf(P_save)
-    # df2 = df.query('_len > 1').reset_index(drop=True)
-    # df2_company = df2['company'].str.replace(r'[/|:\\*]', '_', regex=True).str.replace('"', "'").str.replace('’', "'")
-    # company_chash_list = list(zip(df2_company, df2['chash']))
-    df4 = df.query("_len >= 4").reset_index(drop=True)
-    df4_company: pd.DataFrame = (
-        df4["company"]
-        .str.replace(r"[/|:\\*]", "_", regex=True)
-        .str.replace('"', "'")
-        .str.replace("’", "'")
-    )
-    company_chash_list = list(zip(df4_company, df4["chash"]))
-
-    if len(company_chash_list) == 0:
-        log(P_save).warning("No companies with multiple listings... ")
-        return
-
-    P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
-    P_companies.mkdir(parents=True, exist_ok=True)
-    P_ALL_COMPANY_URLS = P_companies.parent / "ALL_company_urls"
-    P_ALL_COMPANY_URLS.mkdir(parents=True, exist_ok=True)
-    # if all([(P_ALL_COMPANY_URLS / f"{_comp}.html").exists() for _comp in df2_company]):
-    #     log(P_save).info('All downloaded...')
-    #     return
-
-    log(P_save).info(f"Downloading {len(company_chash_list)} companies...")
-
-    driver = init_driver(headless=False)
-
-    P_ALL = load_query_url(P_QUERY / "ALL.txt")
-    ALL_SEARCH_STATE = P_ALL.split("?", maxsplit=1)[1]
-    for company, chash in (pbar := tqdm(company_chash_list)):
-        pbar.set_description(f"{(company)}")
-        P_company_url = P_ALL_COMPANY_URLS / f"{company}.html"
-        # Skip if file exists and recently downloaded
-        if P_company_url.exists():
-            # _rand_refresh = random.randint(2,7)
-            # _rand_refresh = random.randint(1,2)
-            _rand_refresh = 1
-            # _rand_refresh = 365
-            if (
-                datetime.now() - datetime.fromtimestamp(P_company_url.stat().st_mtime)
-            ).days < _rand_refresh:
-                continue
-
-        company_url = f"{HIRING_CAFE_HTTPS}/?company={chash}&{ALL_SEARCH_STATE}"
-        driver.get(company_url)
-
-        time.sleep(2)
-        _rand_wait_time = random.randint(2, 3)
-        # _rand_wait_time = random.randint(4,6)
-        scroll_bottom(driver, wait_time=_rand_wait_time)
-
-        _GRID_XPATH = "//div[@class='my-masonry-grid']"
-        try:
-            # job_cards = wait.until(EC.visibility_of_element_located((By.XPATH, _GRID_XPATH)))
-            job_cards = driver.wait_for_element(_GRID_XPATH)
-            job_cards_outer_html = job_cards.get_attribute("outerHTML")
-        # except TimeoutException:
-        except Exception:
-            job_cards_outer_html = ""
-
-        _data = dict(body=job_cards_outer_html, title=company, description=company_url)
-        output_html = render_template(**_data)
-
-        with open(P_company_url, "w", encoding="utf-8") as f:
-            f.write(output_html)
-
-
-def main3(P_save: Path):
-    """Scrape other job urls and descriptions from companies with multiple job postings"""
-    log(P_save).info(f"Scraping the rest of job descriptions and metadata from {P_save}...")
-    # P_companies = P_save.parents[3] / "cache/{P_save.stem}_company_urls"
-    P_companies = P_save.parents[3] / "cache/ALL_company_urls"
-
-    df = load_jdf(P_save)
-    df2 = df.query("_len >= 3").reset_index(drop=True)
-    _df2_companies = (
-        df2["company"]
-        .str.replace(r"[/|:\\*]", "_", regex=True)
-        .str.replace('"', "'")
-        .str.replace("’", "'")
-    )
-    cdf2_dict = {}
-    for company in _df2_companies:
-        P_company = P_ALL_COMPANY_URLS / f"{company}.html"
-        with open(P_company, "r", encoding="utf-8") as f:
-            html_string = f.read()
-
-        company_df = load_jdf(html_string)
-        # _save_dicts(company_df, P_companies)
-        cdf2_dict[company] = company_df
-    cdf2 = pd.concat(cdf2_dict)
-    # cdf2 = load_cdf(P_companies, verbose=True)[lambda x: x['company'].isin(_df2_companies)]
-    log(P_save).info(f"Scraping company jobs (N={len(cdf2)}).")
-    _save_dicts(cdf2, P_companies)
-
-    log(P_save).info("Done.")
-
-
-def main4(P_save: Path, obsidian=False):
-    """Sync with Obsidian"""
-    import yaml
-
-    YAML_COLS = [
-        "company",
-        "title",
-        "hours",
-        "onsite",
-        "full_time",
-        "lower",
-        "median",
-        "upper",
-        "bay",
-        "skills",
-    ]
-    P_save_jobs = P_save.parent / f"{P_save.stem}_jobs"
-    P_save_jobs.mkdir(exist_ok=True)
-    df = load_df(P_save)
-    log(P_save).info(f"Syncing job descriptions into {P_save_jobs} (N={len(df)})...")
-
-    job_descriptions = []
-    frontmatters = []
-    if obsidian:
-        P_OBSIDIAN_JOBS = Path(
-            r"C:\Users\alexa\Dropbox\DropSyncFiles\Obsidian Vault\Companies\jobs"
-        )
-        log(P_save).info(f"Syncing {P_OBSIDIAN_JOBS}...")
-        for path in P_OBSIDIAN_JOBS.glob("*.md"):
-            path.unlink()
-
-    _list = list(zip(df["position"], df["hash"], df[YAML_COLS].to_dicts()))
-    for position, hash, row_dict in (_pbar := tqdm(_list)):
-        _filename = f"{position}.{hash}.md"
-        P_src = P_JOBS / _filename
-        P_dst = P_save_jobs / _filename
-        if not P_src.exists():  #
-            print(P_src)  #
-            continue
-        assert P_src.exists()
-        _row_yaml = yaml.dump(row_dict, sort_keys=False)
-        _url = f"{VIEW_JOB_HTTPS}{hash}"
-        frontmatter = f"---\n{_row_yaml}---\n[[Jobs List.base]] | {_url}\n\n"
-        with open(P_src, encoding="utf-8") as f:
-            job_description = (
-                f.read()
-                .replace("\xa0", " ")
-                .replace("\u200b", " ")
-                .replace("\u202f", " ")
-                .replace("’", "'")
-            )
-        with open(P_dst, "w", encoding="utf-8") as f:
-            f.write(f"{frontmatter}{job_description}")
-
-        if obsidian:
-            with open(P_OBSIDIAN_JOBS / _filename, "w", encoding="utf-8") as f:
-                f.write(f"{frontmatter}{job_description}")
-        frontmatters.append(frontmatter)
-        job_descriptions.append(job_description)
-
-    P_job_descriptions = P_save.parent / f"{P_save.stem}_job_descriptions.txt"
-    log(P_save).info(f"Writing {P_job_descriptions}...")
-    job_descriptions_txt = "\n\n---\n\n".join(job_descriptions)
-    with open(P_job_descriptions, "w", encoding="utf-8") as f:
-        f.write(job_descriptions_txt)
 
 
 def load_query_url(path: Path | str) -> str:
@@ -476,19 +299,6 @@ def scroll_bottom(driver, scroll_pause_time=SCROLL_PAUSE_TIME, wait_time=WAIT_TI
                 # print('Reached bottom of page...')
                 break
         last_height = new_height
-
-
-# def extract_job_description(root, to_markdown=True) -> str:
-#     def _sanitize(string: None | str) -> str:
-#         if string is None:
-#             return ''
-#         return string.replace(u'\xa0', ' ').replace(u'\u200b', ' ').replace(u'\u202f', ' ').replace('’', "'")
-#     _elem = root.xpath('//article')
-#     _html_string = lxml.html.tostring(_elem).decode(errors='ignore')
-#     job_description = _sanitize(_html_string)
-#     if to_markdown:
-#         job_description = md(job_description, heading_style='ATX')
-#     return job_description
 
 
 def extract_job_description(root, to_markdown=True) -> str:
@@ -580,8 +390,12 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
     _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
     html_string = P_save
     if isinstance(P_save, Path):
-        with open(P_save, encoding="utf-8") as f:
-            html_string = f.read()
+        try:
+            with open(P_save, encoding="utf-8") as f:
+                html_string = f.read()
+        except UnicodeDecodeError:
+            print(P_save)
+            raise
 
     company_ = None
     if html_string:
@@ -679,46 +493,6 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
     return jdf
 
 
-@cache
-def load_cdf(P_companies: Path = P_ALL_COMPANY_URLS, verbose=False) -> pd.DataFrame:
-    if P_companies == P_ALL_COMPANY_URLS:
-        _P_cdf_parquet = P_CACHE / "cdf_2025-11-10.parquet"
-        cdf = pd.read_parquet(_P_cdf_parquet)
-        return cdf
-
-    # _HEADER_COLS = ['days', 'title', 'location', 'salary', 'onsite', 'full_time',
-    #             'company', 'company_summary', 'yoe', 'mgmt', 'job_summary', 'skills',
-    #             '_job_posting']
-
-    company2cdf = {}
-
-    companies_path_list = [p for p in P_companies.glob("*.html")]
-    if verbose:
-        companies_path_list = tqdm(companies_path_list)
-    for path in companies_path_list:
-        if os.stat(path).st_size < 3000:
-            if verbose:
-                print(f"{path.stem} is empty...")
-            continue
-
-        _cdf = load_jdf(path)
-        company2cdf[path.name] = _cdf
-
-    cdf = pd.concat(company2cdf, ignore_index=True)
-    # cdf = _feature_engineering(cdf)
-    return cdf
-
-
-@cache
-def load_df(P_save: Path = P_STEM) -> pd.DataFrame:
-    P_companies = P_save.parents[3] / f"cache/{P_save.stem}_company_urls"
-    jdf = load_jdf(P_save)
-    cdf = load_cdf(P_companies)
-    df = pd.concat([jdf, cdf]).drop_duplicates("hash")
-    # df = pl.from_pandas(df)
-    return df
-
-
 def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     def load_cities() -> pd.DataFrame:
         SILICON_VALLEY = "Silicon Valley"
@@ -804,35 +578,10 @@ def log(P_query: Path) -> logging.Logger:
 
 if __name__ == "__main__":
     P_query_list = [
-        # P_QUERY / ('ALL.txt'),
-        # P_QUERY / ('DS_NorCal_Remote.txt'),
-        # P_QUERY / ('DS_NorCal_Healthcare.txt'),
-        # P_QUERY / ('DS.txt'),
         P_QUERY / ("DS_NorCal.txt"),
-        # P_QUERY / ('Healthcare.txt'),
-        # P_QUERY / ('SF.txt'),
-        #     P_QUERY / ('SW.txt'),
-        #     P_QUERY / ('DS_Remote.txt'),
-        #     P_QUERY / ('DS_Socal.txt'),
-        #     P_QUERY / ('DS_Seattle.txt'),
-        #     P_QUERY / ('DS_NY.txt'),
-        #     P_QUERY / ('DS_Midwest.txt'),
-        #     P_QUERY / ('DS_DC.txt'),
-        #     P_QUERY / ('SW_Remote.txt'),
+        # P_QUERY / ('DS_Healthcare.txt'),
     ]
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
-        # P_save = P_DATA / 'processed/2026-01-01/DS_NorCal' / 'DS_NorCal.html'
+        # P_save = P_DATA / 'processed/2026-02-16/DS_NorCal' / 'DS_NorCal.html'
         main1(P_save, proxy=True)
-        # main2(P_save)
-        # main3(P_save)
-        # main4(P_save, obsidian=False)
-
-# %%
-# import job_search.dataset as dataset
-# from job_search.dataset import main0, main1
-# from job_search.config import P_QUERY
-# P_query = P_QUERY / ('ALL.txt')
-# P_save = main0(P_query, overwrite=False, bare=False)  # Path('data/2025-10-11/DS.html')
-# main1(P_save)
-# dataset.load_jdf(P_save)
