@@ -7,7 +7,6 @@ from functools import cache
 from itertools import chain
 import json
 import logging
-import os
 from pathlib import Path
 import pickle
 import random
@@ -221,8 +220,8 @@ def _save_dicts(df, P_save=None, proxy=False):
         if P_dict.exists():
             continue
         if not P_dict.exists():
-            # url_get_content = requests_get(url, proxy=proxy)
-            url_get_content = selenium_get(url, proxy=False)
+            url_get_content = requests_get(url, proxy=proxy)#
+            # url_get_content = selenium_get(url, proxy=False)#
             # time.sleep(random.randint(2,4))
             time.sleep(random.uniform(1, 3))
             with open(P_url, "w", encoding="utf-8") as f:
@@ -429,21 +428,23 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
         if not use_chash:
             raw_texts.insert(6, company_)
             raw_texts.insert(7, None)
-        if not raw_texts[8].endswith("YOE"):
-            raw_texts.insert(8, "-")
-        if not raw_texts[9].endswith("Mgmt"):
+        if raw_texts[7].startswith(":"):
+            raw_texts.insert(7, "-")
+        if not raw_texts[9].endswith("YOE"):
             raw_texts.insert(9, "-")
-        if "Posting" in raw_texts[11]:
-            raw_texts.insert(11, "-")
+        if not raw_texts[10].endswith("Mgmt"):
+            raw_texts.insert(10, "-")
+        if "Posting" in raw_texts[12]:
+            raw_texts.insert(12, "-")
         url = card.xpath("div[2]/div/a[1]/@href")[0]
         hash = url.split("/")[-1]
 
         if use_chash:
             url2 = card.xpath("div[2]/div/a[2]/@href")[0]
             chash = url2.removeprefix("/?company=").split("&", maxsplit=1)[0]
-            raw_texts_list.append([*raw_texts[:14], hash, chash])
+            raw_texts_list.append([*raw_texts[:15], hash, chash])
         else:
-            raw_texts_list.append([*raw_texts[:14], hash])
+            raw_texts_list.append([*raw_texts[:15], hash])
     if use_chash:
         _HEADER_COLS: list[str] = [
             "days",
@@ -453,6 +454,7 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
             "onsite",
             "full_time",
             "company",
+            "company_stock",
             "company_summary",
             "yoe",
             "mgmt",
@@ -472,6 +474,7 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
             "onsite",
             "full_time",
             "company",
+            "company_stock",
             "company_summary",
             "yoe",
             "mgmt",
@@ -485,7 +488,7 @@ def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
 
     jdf = pd.DataFrame(raw_texts_list, columns=HEADER_COLS).replace(r"\s+", " ", regex=True)
     assert all(jdf["_job_posting"] == "Job Posting")
-    jdf["company"] = jdf["company"].str[:-1].str.replace('"', "'").str.replace("’", "'")
+    jdf["company"] = jdf["company"].str.removesuffix(':').str.replace('"', "'").str.replace("’", "'")
     jdf = jdf.drop(columns=["_job_posting", "_views"])
     _BUTTONS_CLASS = ".//div[@class='flex justify-center space-x-2']/div"
     jdf["_len"] = pd.Series([len(card.xpath(_BUTTONS_CLASS)) for card in all_cards])
@@ -584,4 +587,6 @@ if __name__ == "__main__":
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
         # P_save = P_DATA / 'processed/2026-02-16/DS_NorCal' / 'DS_NorCal.html'
+        # P_save = P_DATA / 'processed/2026-02-19/DS_NorCal' / 'DS_NorCal.html'
+        P_save = P_DATA / 'processed/2026-02-20/DS_NorCal' / 'DS_NorCal.html'
         main1(P_save, proxy=True)

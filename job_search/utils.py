@@ -1,10 +1,10 @@
-import os
 import importlib
-import sys
+import os
 from pathlib import Path
+import sys
 
+from IPython.display import HTML, Markdown, display
 import pandas as pd
-from IPython.display import display, Markdown, HTML
 
 
 def reload(module=None):
@@ -35,7 +35,6 @@ def tailwind_css():
     return HTML('<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>')
 
 def display_code(code: str, language: str = 'python'):
-    from IPython.display import display, Markdown
     markdown_code = f'```{language}\n{code}\n```'
     display(Markdown(markdown_code))
 
@@ -51,6 +50,14 @@ def now(time=True, file=True) -> str:
         if file:
             return datetime_now.strftime(r"%Y-%m-%d")
         return datetime_now.strftime(r"%#m/%#d/%y (%A)")
+
+def paths(path: Path=Path.cwd(), glob='*', mtime=None) -> pd.Series:
+    paths_series = pd.Series([p for p in path.glob(glob)])
+    if mtime:
+        _mtimes = paths_series.apply(lambda x: x.stat().st_mtime).pipe(pd.to_datetime, unit='s')
+        _mtimes_mask = _mtimes >= pd.Timestamp(mtime)
+        paths_series = paths_series[_mtimes_mask]
+    return paths_series
 
 def path_names(path: Path, glob='*', stem=True) -> pd.Series:
     if stem:

@@ -1,6 +1,6 @@
 from pathlib import Path
-from job_search.utils import now, is_running_wsl
 
+from job_search.utils import is_running_wsl, now
 
 P_ROOT = Path(__file__).parents[1]
 if is_running_wsl():
@@ -15,9 +15,9 @@ P_RESUME = P_RAW / 'AW_Resume.md'
 HIRING_CAFE_HTTPS = "https://hiring.cafe"
 VIEW_JOB_HTTPS = "https://hiring.cafe/viewjob/"
 QUERY_LIST: list[str] = [
-    DS_NORCAL_REMOTE := 'DS_NorCal_Remote',
-    DS_HEALTH := 'DS_Healthcare',
     DS_NORCAL := 'DS_NorCal',
+    DS_HEALTH := 'DS_Healthcare',
+    DS_NORCAL_REMOTE := 'DS_NorCal_Remote',
     DS := 'DS',
     HEALTH := 'Healthcare',
     SW_REMOTE := 'SW_Remote',
@@ -36,7 +36,7 @@ P_JOBS = P_DATA / 'cache/jobs'
 P_URLS = P_DATA / 'cache/urls'
 P_DICT = P_DATA / 'cache/dicts'
 # P_COMPANY_URLS = P_DATA / 'cache/company_urls'
-P_ALL_COMPANY_URLS = P_CACHE / 'ALL_company_urls'
+# P_ALL_COMPANY_URLS = P_CACHE / 'ALL_company_urls'
 
 _date = now(time=False)
 # STEM = 'Healthcare'
@@ -44,5 +44,5 @@ STEM = QUERY_LIST[0] if (len(QUERY_LIST) > 0) else 'Healthcare'
 P_DATE = P_PROCESSED / f'{_date}'
 P_STEM = P_DATE / f'{STEM}/{STEM}.html'
 P_STEM_JOBS_HTML = P_DATE / f'{STEM}/{STEM}_jobs.html'
-P_STEM_COMPANY_URLS = P_DATE / f'{STEM}/{STEM}_company_urls/'
+# P_STEM_COMPANY_URLS = P_DATE / f'{STEM}/{STEM}_company_urls/'
 P_STEM_QUERY_TXT = P_QUERY / f'{STEM}.txt'
