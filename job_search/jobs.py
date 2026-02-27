@@ -31,8 +31,8 @@ def load_jobs(clean=True, overwrite=False) -> pd.DataFrame:
 
         if clean:
             # jobs_df['estimated_publish_date'] = jobs_df['estimated_publish_date'].dt.tz_localize('UTC')
-            jobs_df['health'] = jobs_df['_hash'].isin(load_jdf_parquet(DS_HEALTH)['hash'])
-            jobs_df['norcal'] = jobs_df['_hash'].isin(load_jdf_parquet(DS_NORCAL)['hash'])
+            jobs_df['health'] = jobs_df['_hash'].isin(load_jdf_parquet(DS_HEALTH, overwrite=overwrite)['hash'])
+            jobs_df['norcal'] = jobs_df['_hash'].isin(load_jdf_parquet(DS_NORCAL, overwrite=overwrite)['hash'])
 
         jobs_df.to_parquet(P_parquet)
         print('Saving:', P_parquet)
@@ -42,8 +42,8 @@ def load_jobs(clean=True, overwrite=False) -> pd.DataFrame:
     return jobs_df
 
 @cache
-def load_jobs2026() -> pd.DataFrame:
-    jobs = load_jobs()
+def load_jobs2026(clean=True, overwrite=False) -> pd.DataFrame:
+    jobs = load_jobs(clean, overwrite)
     jobs2026 = (jobs.query('estimated_publish_date >= "2026-01-01"')
         .sort_values('estimated_publish_date', ascending=False)
         .reset_index(drop=True))[COLS]
@@ -51,8 +51,8 @@ def load_jobs2026() -> pd.DataFrame:
     return jobs2026
 
 @cache
-def load_jobs_feb() -> pd.DataFrame:
-    jobs = load_jobs()
+def load_jobs_feb(clean=True, overwrite=False) -> pd.DataFrame:
+    jobs = load_jobs(clean, overwrite)
     jobs_feb = (jobs.query('estimated_publish_date >= "2026-02-01"')
         .sort_values('estimated_publish_date', ascending=False)
         .reset_index(drop=True))[COLS]
@@ -85,6 +85,7 @@ def load_jdf_parquet(query='ALL', overwrite=False, **kwargs):
         _dfs = [load_jdf(path) for path in _query_pd_series]
         query_jdf = pd.concat(_dfs).drop_duplicates(**kwargs).reset_index(drop=True)
         query_jdf.to_parquet(P_parquet)
+        print('Saving:', P_parquet)
         return query_jdf
     query_jdf = pd.read_parquet(P_parquet)
     return query_jdf
@@ -105,7 +106,7 @@ def display_mask(phrase, job_ii=1, job_df=None, llm=False):
         _mask_hash = _mask_df['_hash'].iloc[ii]
         print(f'{job_ii} of {_mask.sum()}: ' + VIEW_JOB_HTTPS + _mask_hash)
 
-        display_ai(_mask_hash, job_df=job_df, llm=llm)
+        display_job(_mask_hash, job_df=job_df, llm=llm)
         # job_md = hash2md(_mask_hash)
         # llm_extract(job_md, verbose=True)
         # display(_mask_df.query('_hash == @_mask_hash').drop(columns=['_md', 'description']).T.style)
@@ -113,7 +114,10 @@ def display_mask(phrase, job_ii=1, job_df=None, llm=False):
     else:
         print(f'No match for: {phrase}')
 
-def display_ai(_hash=HASH, job_df=None, llm=True):
+def display_ai(_hash=HASH, job_df=None):
+    return display_job(_hash=HASH, job_df=None, llm=True)
+
+def display_job(_hash=HASH, job_df=None, llm=False):
     if job_df is None:
         job_df = load_jobs()
     job_md = hash2md(_hash)

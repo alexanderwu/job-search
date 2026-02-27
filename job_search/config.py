@@ -4,7 +4,7 @@ from job_search.utils import is_running_wsl, now
 
 P_ROOT = Path(__file__).parents[1]
 if is_running_wsl():
-    P_DATA = Path('/mnt/c/Users/alexa/Dev/job-search/data')
+    P_DATA = Path.home() / 'Dev/job-search/data'
 else:
     P_DATA = P_ROOT.parent / 'job-search/data'
 P_RAW = P_DATA / 'raw'

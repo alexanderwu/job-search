@@ -236,7 +236,7 @@ def _create_xml(name, attr=None, val=None):
 
 
 if __name__ == "__main__":
-    # from job_search.config import P_RAW
+    from job_search.config import P_RAW, P_PROCESSED
     # P_resume = P_ALEX_RESUME_MD  # Alexander_Wu_Resume.md
     # P_resume_pdf = P_resume.parent / f"{P_resume.stem}.pdf"
     # print(f"Converting {P_resume} to {P_resume_pdf}...")
@@ -247,7 +247,8 @@ if __name__ == "__main__":
     # P_resume = Path('data/raw') / 'AW_Healthcare_Resume.md'
     # P_resume = Path('data/raw') / 'Alex_Wu_Resume - RWD Programmer.md'
     # P_resume = Path('data/raw') / 'Alex_Wu_Verily_Resume.md'
-    P_resume = Path('data/raw') / 'AW_Resume.md'
+    # P_resume = Path('data/raw') / 'AW_Resume.md'
+    P_resume = P_RAW / 'Alex_Wu_Resume.md'
     # P_resume = Path('data/interim') / 'Alex_Wu_Resume - Regeneron.md'
     # P_resume = Path('data/interim') / 'Alex_Wu_Capegemini_Resume.md'
     # P_resume = Path('data/interim') / 'AW_Genentech_MDAE_Resume.md'
@@ -257,9 +258,12 @@ if __name__ == "__main__":
     # convert_resume(P_resume, keep_docx=False, pagebreak=True)
     # convert_resume(P_resume, keep_docx=True, pagebreak=True)
     convert_resume(P_resume, keep_docx=True, pagebreak=True)
+    print(P_PROCESSED / f"{P_resume.stem}.pdf")
+    print(f'swriter --headless --convert-to pdf "data/raw/{P_resume.stem}.docx" --outdir data/processed/')
     #swriter --headless --convert-to pdf "data/interim/AW_Genentech_MDAE_Resume.docx" --outdir data/processed/
     #swriter --headless --convert-to pdf "data/interim/AW_Homeward_Resume.docx" --outdir data/processed/
     #swriter --headless --convert-to pdf "data/interim/AW_Oscar_Resume.docx" --outdir data/processed/
     #swriter --headless --convert-to pdf "data/interim/AW_Verily_Resume.docx" --outdir data/processed/
     #swriter --headless --convert-to pdf "data/raw/AW_Resume.docx" --outdir data/processed/
+    #swriter --headless --convert-to pdf "data/raw/Alex_Wu_Resume.docx" --outdir data/processed/
     #code data/processed/AW_Verily_Resume.pdf
