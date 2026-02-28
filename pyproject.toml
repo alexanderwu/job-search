@@ -22,6 +22,7 @@ dependencies = [
     "google-genai>=1.43.0",
     "ipykernel>=7.0.0",
     "ipywidgets>=8.1.7",
+    "lmstudio>=1.5.0",
     "lxml>=6.0.2",
     "markdown-it-py[plugins]>=4.0.0",
     "markdownify>=1.2.0",
