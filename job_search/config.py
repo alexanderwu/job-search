@@ -39,10 +39,14 @@ P_DICT = P_DATA / 'cache/dicts'
 # P_ALL_COMPANY_URLS = P_CACHE / 'ALL_company_urls'
 
 _date = now(time=False)
+_date_prev = now(time=False, days=1)
 # STEM = 'Healthcare'
-STEM = QUERY_LIST[0] if (len(QUERY_LIST) > 0) else 'Healthcare'
+STEM = QUERY_LIST[0] if (len(QUERY_LIST) > 0) else DS_HEALTH
 P_DATE = P_PROCESSED / f'{_date}'
+P_DATE_PREV = P_PROCESSED / f'{_date_prev}'
 P_STEM = P_DATE / f'{STEM}/{STEM}.html'
-P_STEM_JOBS_HTML = P_DATE / f'{STEM}/{STEM}_jobs.html'
+P_STEM_PREV = P_DATE_PREV / f'{STEM}/{STEM}.html'
+# P_STEM_JOBS_HTML = P_DATE / f'{STEM}/{STEM}_jobs.html'
 # P_STEM_COMPANY_URLS = P_DATE / f'{STEM}/{STEM}_company_urls/'
-P_STEM_QUERY_TXT = P_QUERY / f'{STEM}.txt'
+# P_STEM_QUERY_TXT = P_QUERY / f'{STEM}.txt'
+P_stem = P_STEM if P_STEM.exists() else P_STEM_PREV

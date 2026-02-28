@@ -40,6 +40,7 @@ from job_search.config import (
     P_JOBS,
     P_QUERY,
     P_STEM,
+    P_STEM_PREV,
     P_URLS,
     QUERY_LIST,
     VIEW_JOB_HTTPS,
@@ -385,11 +386,13 @@ def identifier_get(identifier, save=False, verbose=True):
 
 
 @cache
-def load_jdf(P_save: Path | str | None = P_STEM) -> pd.DataFrame:
+def load_jdf(P_save: Path | str = P_STEM) -> pd.DataFrame:
     _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
     html_string = P_save
     if isinstance(P_save, Path):
         try:
+            if not P_save.exists():
+                P_save = P_STEM_PREV
             with open(P_save, encoding="utf-8") as f:
                 html_string = f.read()
         except UnicodeDecodeError:
@@ -507,10 +510,12 @@ def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
         -1
     ].map({"h": 1, "d": 24, "w": 24 * 7, "mo": 730, "y": 24 * 365})
     df["position"] = (
-        (df["company"] + " - " + df["title"])
+        (df["company"].fillna('') + " - " + df["title"])
         .str.replace(r"[/|:\\*?]", "_", regex=True)
         .str.replace('"', "'")
         .str.replace("’", "'")
+        .str.replace(r" +", " ", regex=True)
+        .str.strip()
     )
     df["_position"] = df["position"].str.lower()
     df = (

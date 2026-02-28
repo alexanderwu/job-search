@@ -1,4 +1,4 @@
-from functools import cache
+from functools import cache, reduce
 import re
 
 import duckdb
@@ -15,9 +15,12 @@ COLS = ['company_name', 'title', 'estimated_publish_date', 'requirements_summary
         'technical_tools', 'role_activities', 'description',
         'seniority_level', 'company_tagline',
         '_md', '_hash',
-        'company_activities',
-        # 'health', 'norcal'
+        # 'company_activities',
+        'health', 'norcal'
         ]
+MASK_COLS = ['company_name', 'title', '_hash', 'requirements_summary', 'technical_tools',
+             'role_activities', 'job_category', 'seniority_level', 'workplace_type',
+             'formatted_workplace_location', 'company_tagline', '_md']
 
 
 @cache
@@ -45,6 +48,14 @@ def load_jobs(clean=True, overwrite=False) -> pd.DataFrame:
         jobs_df['health'] = cmask(['health', 'medical', 'biotech'], col='company_activities')
         jobs_df['jan'] = jobs_df['estimated_publish_date'] >= "2026-01-01"
         jobs_df['feb'] = jobs_df['estimated_publish_date'] >= "2026-02-01"
+        jobs_df['position'] = (
+            (jobs_df["company_name"].fillna('') + " - " + jobs_df["title"])
+            .str.replace(r"[/|:\\*?]", "_", regex=True)
+            .str.replace('"', "'")
+            .str.replace("’", "'")
+            .str.replace(r" +", " ", regex=True)
+            .str.strip()
+        )
 
     return jobs_df
 
@@ -105,11 +116,11 @@ def load_jdf_parquet(query='ALL', overwrite=False, **kwargs):
     if overwrite or not P_parquet.exists():
         _query_pd_series = _load_query_dict()[query]
         _dfs = [load_jdf(path) for path in _query_pd_series]
-        query_jdf = pd.concat(_dfs).drop_duplicates(**kwargs).reset_index(drop=True)
+        query_jdf = pd.concat(_dfs, ignore_index=True)
         query_jdf.to_parquet(P_parquet)
         print('Saving:', P_parquet)
         return query_jdf
-    query_jdf = pd.read_parquet(P_parquet)
+    query_jdf = pd.read_parquet(P_parquet).drop_duplicates(**kwargs)
     return query_jdf
 
 
@@ -129,25 +140,24 @@ def display_text_mask(keywords, job_ii=1, job_df=None, llm=False):
         print(f'{job_ii} of {_mask.sum()}: ' + VIEW_JOB_HTTPS + _mask_hash)
 
         display_job(_mask_hash, job_df=job_df, llm=llm)
-        # job_md = hash2md(_mask_hash)
-        # llm_extract(job_md, verbose=True)
-        # display(_mask_df.query('_hash == @_mask_hash').drop(columns=['_md', 'description']).T.style)
-        # display_hash(_mask_hash)
     else:
         print(f'No match for: {keywords}')
 
-def disp(jobs_df=None, mask=None, ii=0, llm=False):
+def disp(jobs_df=None, mask=None, ii=0, llm=False, **kwargs):
     if jobs_df is None:
         jobs_df = load_jobs()
     if mask is None:
         mask = pd.Series(True, index=jobs_df.index)
+    if not isinstance(mask, pd.Series):
+        mask = cmask(mask, **kwargs)
 
     if len(jobs_df) == 0 or mask.sum() == 0:
         return print('No match')
 
-    ii = ii % 47
+    ii = ii % jobs_df.shape[0]
     job_ii = ii + 1
-    # display(perc(mask))
+    mask = mask.reindex(jobs_df.index)
+    display(perc(mask))
     if any(mask):
         mask_df = jobs_df[mask]
         mask_hash = mask_df['_hash'].iloc[ii]
@@ -211,7 +221,7 @@ def hash2md(hash, verbose=False):
 # @cache
 def _load_text(job_df=None) -> pd.Series:
     if job_df is None:
-        job_df = load_jobs2026()
+        job_df = load_jobs()
     pd_series = (job_df['company_name'].fillna('') + ' - ' + job_df['title'] + '.' + job_df['_hash'] + '\n\n'
         + job_df['requirements_summary'] + '\n\n'
         + job_df['technical_tools'].str.join('; ') + '\n'
@@ -328,14 +338,18 @@ def _chashes(keywords, contains=True, case=False, col=COL):
     hashes = jobs_df[mask]['_hash'].pipe(set)
     return hashes
 
-def cmask(keywords, contains=True, case=False, col=COL):
+def cmask(keywords, contains=True, case=False, col=MASK_COLS):
+    if isinstance(col, (list, tuple)):
+        masks_list = [cmask(keywords, contains, case, c) for c in col]
+        mask = reduce(lambda x, y: x|y, masks_list)
+        return mask
     if not isinstance(keywords, (list, tuple)):
         keywords = [keywords]
     keywords = tuple(keywords)
     mask = _cmask(keywords, contains, case, col)
     return mask
 
-def chashes(keywords, contains=True, case=False, jobs_df=None, col=COL):
+def chashes(keywords, contains=True, case=False, jobs_df=None, col=MASK_COLS):
     if not isinstance(keywords, (list, tuple)):
         keywords = [keywords]
     keywords = tuple(keywords)

@@ -10,15 +10,14 @@ from functools import cache
 from pathlib import Path
 
 import docx
-import docx2pdf
-import pandas as pd
 from docx.document import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement, ns
 from docx.shared import Inches, Pt, RGBColor
+import docx2pdf  # noqa: F401
 from markdown_it import MarkdownIt
 from mdit_py_plugins.front_matter import front_matter_plugin
-
+import pandas as pd
 
 P_ALEX_RESUME_MD = Path('data/Alexander_Wu_Resume.md')
 P_RAW = Path('data/raw')
@@ -236,7 +235,7 @@ def _create_xml(name, attr=None, val=None):
 
 
 if __name__ == "__main__":
-    from job_search.config import P_RAW, P_PROCESSED
+    from job_search.config import P_PROCESSED, P_RAW
     # P_resume = P_ALEX_RESUME_MD  # Alexander_Wu_Resume.md
     # P_resume_pdf = P_resume.parent / f"{P_resume.stem}.pdf"
     # print(f"Converting {P_resume} to {P_resume_pdf}...")

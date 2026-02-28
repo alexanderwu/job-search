@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import importlib
 import os
 from pathlib import Path
@@ -39,9 +40,8 @@ def display_code(code: str, language: str = 'python'):
     display(Markdown(markdown_code))
 
 
-def now(time=True, file=True) -> str:
-    from datetime import datetime
-    datetime_now = datetime.now()
+def now(time=True, file=True, days=0) -> str:
+    datetime_now = datetime.now() - timedelta(days=days)
     if time:
         if file:
             return datetime_now.strftime(r"%Y-%m-%d_%H%M%S")
