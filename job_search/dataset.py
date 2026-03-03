@@ -585,6 +585,7 @@ def log(P_query: Path) -> logging.Logger:
 
 
 if __name__ == "__main__":
+    from job_search.config import P_stem
     P_query_list = [
         P_QUERY / ("DS_NorCal.txt"),
         # P_QUERY / ('DS_Healthcare.txt'),
@@ -592,6 +593,5 @@ if __name__ == "__main__":
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
         # P_save = P_DATA / 'processed/2026-02-16/DS_NorCal' / 'DS_NorCal.html'
-        # P_save = P_DATA / 'processed/2026-02-19/DS_NorCal' / 'DS_NorCal.html'
-        # P_save = P_DATA / 'processed/2026-02-20/DS_NorCal' / 'DS_NorCal.html'
+        # P_save = P_stem
         main1(P_save, proxy=True)
