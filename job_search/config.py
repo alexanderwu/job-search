@@ -8,6 +8,7 @@ if is_running_wsl():
 else:
     P_DATA = P_ROOT.parent / 'job-search/data'
 P_RAW = P_DATA / 'raw'
+P_INTERIM = P_DATA / 'interim'
 P_EXTERNAL = P_DATA / 'external'
 P_PROCESSED = P_DATA / 'processed'
 P_RESUME = P_RAW / 'AW_Resume.md'

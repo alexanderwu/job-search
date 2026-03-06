@@ -19,8 +19,9 @@ from markdown_it import MarkdownIt
 from mdit_py_plugins.front_matter import front_matter_plugin
 import pandas as pd
 
+from job_search.config import P_INTERIM, P_PROCESSED, P_RAW
+
 P_ALEX_RESUME_MD = Path('data/Alexander_Wu_Resume.md')
-P_RAW = Path('data/raw')
 
 
 def convert_markdown(path_md: Path | str, keep_docx=True, resume=False, pagebreak=False, verbose=True):
@@ -33,7 +34,9 @@ def convert_markdown(path_md: Path | str, keep_docx=True, resume=False, pagebrea
         _pagebreak_list = ((mdf['_tag'] == "ul") & (mdf['_markdown'].str.len() == 0)).to_list()
         _first_index = _pagebreak_list.index(True)
         _second_index = _pagebreak_list.index(True, _first_index + 1)
-        mdf.loc[_second_index, '_style'] = '_pagebreak'
+        # mdf.loc[_second_index, '_style'] = '_pagebreak'
+        _third_index = _pagebreak_list.index(True, _second_index + 1)
+        mdf.loc[_third_index, '_style'] = '_pagebreak'
     if resume:
         mdf.loc[0, '_style'] = 'title'
         mdf.loc[1, '_style'] = 'subtitle'
@@ -54,7 +57,7 @@ def convert_markdown(path_md: Path | str, keep_docx=True, resume=False, pagebrea
     P_docx = P_md.parent / f"{P_md.stem}"
     # P_docx = Path('data/_') / f"{P_md.stem}"
     if verbose:
-        print(f'Saving to {P_docx}')
+        print(f'Saving to {P_docx}.docx')
     document.save(f'{P_docx}.docx')
     convert_pdf(document, P_docx, keep_docx=keep_docx)
 
@@ -109,10 +112,13 @@ def convert_pdf(document: Document, name: Path | str, keep_docx=False):
     import subprocess
 
     # docx2pdf.convert(f'{name}.docx', f'{name}.pdf')
-    command = ["swriter", "--headless", "--convert-to", "pdf", "--outdir", P_RAW, name]
+    P_name = Path(name)
     try:
-        subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
-        print(f"Successfully converted {name} to PDF.")
+        # command = ["swriter", "--headless", "--convert-to", "pdf", "--outdir", P_RAW, name]
+        # subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+        subprocess.run(f'swriter --headless --convert-to pdf "{P_name}.docx" --outdir data/processed/', shell=True)
+        # print(f"Successfully converted {P_name}.pdf")
+        print(f"{P_PROCESSED / P_name.stem}.pdf")
     except subprocess.CalledProcessError as e:
         print(f"Error during conversion: {e.stderr.decode()}")
     except FileNotFoundError:
@@ -121,7 +127,7 @@ def convert_pdf(document: Document, name: Path | str, keep_docx=False):
         print("Conversion timed out.")
 
     if not keep_docx:
-        Path(f'{name}.docx').unlink()
+        Path(f'{P_name}.docx').unlink()
 
 
 def _init_document(document, header=True):
@@ -235,7 +241,6 @@ def _create_xml(name, attr=None, val=None):
 
 
 if __name__ == "__main__":
-    from job_search.config import P_PROCESSED, P_RAW
     # P_resume = P_ALEX_RESUME_MD  # Alexander_Wu_Resume.md
     # P_resume_pdf = P_resume.parent / f"{P_resume.stem}.pdf"
     # print(f"Converting {P_resume} to {P_resume_pdf}...")
@@ -243,22 +248,22 @@ if __name__ == "__main__":
 
     # P_beone_resume = Path('data/raw') / 'Alexander_Wu_Resume - BeOne Medicines.md'
     # P_resume = P_RAW / 'AW_Roche_Resume.md'
-    # P_resume = Path('data/raw') / 'AW_Healthcare_Resume.md'
-    # P_resume = Path('data/raw') / 'Alex_Wu_Resume - RWD Programmer.md'
-    # P_resume = Path('data/raw') / 'Alex_Wu_Verily_Resume.md'
-    # P_resume = Path('data/raw') / 'AW_Resume.md'
-    P_resume = P_RAW / 'Alex_Wu_Resume.md'
-    # P_resume = Path('data/interim') / 'Alex_Wu_Resume - Regeneron.md'
-    # P_resume = Path('data/interim') / 'Alex_Wu_Capegemini_Resume.md'
-    # P_resume = Path('data/interim') / 'AW_Genentech_MDAE_Resume.md'
-    # P_resume = Path('data/interim') / 'AW_Homeward_Resume.md'
-    # P_resume = Path('data/interim') / 'AW_Oscar_Resume.md'
-    # P_resume = Path('data/interim') / 'AW_Verily_Resume.md'
+    # P_resume = P_RAW / 'AW_Healthcare_Resume.md'
+    # P_resume = P_RAW / 'Alex_Wu_Resume - RWD Programmer.md'
+    # P_resume = P_RAW / 'Alex_Wu_Verily_Resume.md'
+    # P_resume = P_RAW / 'AW_Resume.md'
+    # P_resume = P_RAW / 'Alex_Wu_Resume.md'
+    # P_resume = P_INTERIM / 'Alex_Wu_Resume - Regeneron.md'
+    # P_resume = P_INTERIM / 'Alex_Wu_Capegemini_Resume.md'
+    # P_resume = P_INTERIM / 'AW_Genentech_MDAE_Resume.md'
+    # P_resume = P_INTERIM / 'AW_Homeward_Resume.md'
+    # P_resume = P_INTERIM / 'AW_Oscar_Resume.md'
+    # P_resume = P_INTERIM / 'AW_Verily_Resume.md'
+    P_resume = P_INTERIM / 'AW_CreatorIQ_Resume.md'
     # convert_resume(P_resume, keep_docx=False, pagebreak=True)
-    # convert_resume(P_resume, keep_docx=True, pagebreak=True)
+    # convert_resume(P_resume, keep_docx=True, pagebreak=False)
     convert_resume(P_resume, keep_docx=True, pagebreak=True)
-    print(P_PROCESSED / f"{P_resume.stem}.pdf")
-    print(f'swriter --headless --convert-to pdf "data/raw/{P_resume.stem}.docx" --outdir data/processed/')
+    # print(f'swriter --headless --convert-to pdf "data/interim/{P_resume.stem}.docx" --outdir data/processed/')
     #swriter --headless --convert-to pdf "data/interim/AW_Genentech_MDAE_Resume.docx" --outdir data/processed/
     #swriter --headless --convert-to pdf "data/interim/AW_Homeward_Resume.docx" --outdir data/processed/
     #swriter --headless --convert-to pdf "data/interim/AW_Oscar_Resume.docx" --outdir data/processed/
