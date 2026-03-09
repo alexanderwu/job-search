@@ -591,7 +591,7 @@ if __name__ == "__main__":
         # P_QUERY / ('DS_Healthcare.txt'),
     ]
     for P_query in P_query_list:
-        # P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
+        P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
         # P_save = P_DATA / 'processed/2026-02-16/DS_NorCal' / 'DS_NorCal.html'
         # P_save = P_stem
-        main1(P_stem, proxy=True)
+        main1(P_save, proxy=True)

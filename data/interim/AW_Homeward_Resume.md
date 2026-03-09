@@ -20,7 +20,7 @@ Hands-on Data Scientist with 5+ years of experience analyzing healthcare, clinic
 <!-- - **Natural Language Processing:** NER (Named Entity Recognition), Topic Modeling, LLMs -->
 
 ## **EXPERIENCE**
-<!--  -->
+
 <!-- **Protein Design Technology**, Emeryville, CA	**December 2025 – Present** -->
 <!-- **AI Researcher (Computational Biology)** -->
 <!-- Implemented AI approaches for predicting antibody-antigen binding to save costs in drug discovery. -->
