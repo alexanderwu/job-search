@@ -67,8 +67,8 @@ def paths(path=Path.cwd(), glob='*', mtime=None) -> pd.Series:
 def paths_df(path=Path.cwd(), glob='*', mtime=None) -> pd.DataFrame:
     paths_series = pd.Series([p for p in path.glob(glob)])
     paths_size = paths_series.apply(lambda x: x.stat().st_size)
-    # paths_ctimes = paths_series.apply(lambda x: x.stat().st_ctime).pipe(pd.to_datetime, unit='s', tzinfo=TZ_LA)
-    paths_mtimes = paths_series.apply(lambda x: x.stat().st_mtime).pipe(pd.to_datetime, unit='s', tzinfo=TZ_LA)
+    # paths_ctimes = paths_series.apply(lambda x: x.stat().st_ctime).pipe(pd.to_datetime, unit='s')
+    paths_mtimes = paths_series.apply(lambda x: x.stat().st_mtime).pipe(pd.to_datetime, unit='s')
     df = pd.DataFrame({
         'path': paths_series,
         'size': paths_size,

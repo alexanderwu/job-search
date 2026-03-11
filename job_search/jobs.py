@@ -79,7 +79,7 @@ def _norcal_mask(df_lon_lats):
     return norcal_mask
 
 @cache
-def load_jobs2026(db='jobs_all.db', clean=True, overwrite=False) -> pd.DataFrame:
+def load_jobs2026(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
     jobs_df = load_jobs(db, clean, overwrite)
     jobs2026 = (jobs_df.query('estimated_publish_date >= "2026-01-01"')
         .sort_values('estimated_publish_date', ascending=False)
