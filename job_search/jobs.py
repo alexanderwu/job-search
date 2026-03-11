@@ -1,4 +1,5 @@
 from functools import cache, reduce
+import pickle
 import re
 
 import duckdb
@@ -7,8 +8,9 @@ from markdownify import markdownify as md
 import pandas as pd
 
 from job_search.ai import llm_extract
-from job_search.config import DS_HEALTH, DS_NORCAL, P_CACHE, P_PROCESSED, VIEW_JOB_HTTPS
+from job_search.config import DS_HEALTH, DS_NORCAL, P_CACHE, P_PROCESSED, P_ROOT, VIEW_JOB_HTTPS
 from job_search.dataset import load_jdf
+from job_search.utils import paths_df
 
 COLS = ['company_name', 'title', 'estimated_publish_date', 'requirements_summary',
         'job_category', 'workplace_type', 'formatted_workplace_location',
@@ -24,10 +26,12 @@ MASK_COLS = ['company_name', 'title', '_hash', 'requirements_summary', 'technica
 
 
 @cache
-def load_jobs(clean=True, overwrite=False) -> pd.DataFrame:
-    P_parquet = P_CACHE / 'jobs_df.parquet'
+def load_jobs(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
+    if isinstance(db, str):
+        db = P_ROOT / db
+    P_parquet = P_CACHE / f'{db.stem}.parquet'
     if overwrite or not P_parquet.exists():
-        with duckdb.connect("../jobs.duckdb") as con:
+        with duckdb.connect(db) as con:
             jobs_df = con.table("jobs").df()
 
         jobs_df['_md'] = jobs_df['description'].map(md)
@@ -75,8 +79,8 @@ def _norcal_mask(df_lon_lats):
     return norcal_mask
 
 @cache
-def load_jobs2026(clean=True, overwrite=False) -> pd.DataFrame:
-    jobs_df = load_jobs(clean, overwrite)
+def load_jobs2026(db='jobs_all.db', clean=True, overwrite=False) -> pd.DataFrame:
+    jobs_df = load_jobs(db, clean, overwrite)
     jobs2026 = (jobs_df.query('estimated_publish_date >= "2026-01-01"')
         .sort_values('estimated_publish_date', ascending=False)
         .reset_index(drop=True))[COLS]
@@ -84,7 +88,7 @@ def load_jobs2026(clean=True, overwrite=False) -> pd.DataFrame:
     return jobs2026
 
 @cache
-def load_jobs_feb(clean=True, overwrite=False) -> pd.DataFrame:
+def load_jobs_feb(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
     jobs_df = load_jobs(clean, overwrite)
     jobs_feb = (jobs_df.query('estimated_publish_date >= "2026-02-01"')
         .sort_values('estimated_publish_date', ascending=False)
@@ -101,6 +105,17 @@ def load_jdf_dict(**kwargs) -> dict[str, pd.DataFrame]:
         _dfs = [load_jdf(path) for path in qdict[_query]]
         jdf_dict[_query] = pd.concat(_dfs).drop_duplicates(**kwargs).reset_index(drop=True)
     return jdf_dict
+
+def load_pkl(P_pkl):
+    if isinstance(P_pkl, str):
+        path_df = paths_df(P_CACHE / 'dicts', f'*.{P_pkl}.html.pkl')
+        if path_df.empty:
+            print(f"{P_pkl} not found.")
+            raise FileNotFoundError
+        P_pkl = path_df['path'].iloc[0]
+    with open(P_pkl, 'rb') as f:
+        pkl_dict = pickle.load(f)
+    return pkl_dict
 
 @cache
 def _load_query_dict() -> dict[str, pd.Series]:

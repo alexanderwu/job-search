@@ -3,9 +3,12 @@ import importlib
 import os
 from pathlib import Path
 import sys
+from zoneinfo import ZoneInfo
 
 from IPython.display import HTML, Markdown, display
 import pandas as pd
+
+TZ_LA = ZoneInfo('America/Los_Angeles')
 
 
 def reload(module=None):
@@ -51,15 +54,34 @@ def now(time=True, file=True, days=0) -> str:
             return datetime_now.strftime(r"%Y-%m-%d")
         return datetime_now.strftime(r"%#m/%#d/%y (%A)")
 
-def paths(path: Path=Path.cwd(), glob='*', mtime=None) -> pd.Series:
+def paths(path=Path.cwd(), glob='*', mtime=None) -> pd.Series:
     paths_series = pd.Series([p for p in path.glob(glob)])
+    if isinstance(mtime, int):
+        mtime = pd.Timestamp.now() - pd.Timedelta(days=mtime)
     if mtime:
         _mtimes = paths_series.apply(lambda x: x.stat().st_mtime).pipe(pd.to_datetime, unit='s')
         _mtimes_mask = _mtimes >= pd.Timestamp(mtime)
         paths_series = paths_series[_mtimes_mask]
     return paths_series
 
-def path_names(path: Path, glob='*', stem=True) -> pd.Series:
+def paths_df(path=Path.cwd(), glob='*', mtime=None) -> pd.DataFrame:
+    paths_series = pd.Series([p for p in path.glob(glob)])
+    paths_size = paths_series.apply(lambda x: x.stat().st_size)
+    # paths_ctimes = paths_series.apply(lambda x: x.stat().st_ctime).pipe(pd.to_datetime, unit='s', tzinfo=TZ_LA)
+    paths_mtimes = paths_series.apply(lambda x: x.stat().st_mtime).pipe(pd.to_datetime, unit='s', tzinfo=TZ_LA)
+    df = pd.DataFrame({
+        'path': paths_series,
+        'size': paths_size,
+        # 'ctime': paths_ctimes,
+        'mtime': paths_mtimes,
+    }).sort_values('mtime', ascending=False, ignore_index=True)
+    if isinstance(mtime, int):
+        mtime = pd.Timestamp.now() - pd.Timedelta(days=mtime)
+    if mtime:
+        df = df.query('mtime >= @mtime')
+    return df
+
+def path_names(path=Path.cwd(), glob='*', stem=True) -> pd.Series:
     if stem:
         return pd.Series([p.stem for p in path.glob(glob)])
     return pd.Series([p.name for p in path.glob(glob)])
