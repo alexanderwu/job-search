@@ -210,19 +210,21 @@ def _save_dicts(df, P_save=None, proxy=False):
         log(P_save).info(f"Saved {P_jdf} (N={len(df)})...")
     hash2identifier_dict = dict(zip(df["hash"], df_identifier))
 
+    driver = init_driver(proxy=False, headless=False)#
+
     for url in (pbar := tqdm(VIEW_JOB_HTTPS + df["hash"])):
         hash: str = url.split("/")[-1]
         identifier = hash2identifier_dict[hash]
-        pbar.set_description(f"{identifier}")
         P_url = P_URLS / f"{identifier}.html"
         P_md = P_JOBS / f"{identifier}.md"
         P_dict = P_DICT / f"{identifier}.html.pkl"
+        pbar.set_description(f"{P_url}")
         # if P_md.exists():
         if P_dict.exists():
             continue
         if not P_dict.exists():
-            url_get_content = requests_get(url, proxy=proxy)#
-            # url_get_content = selenium_get(url, proxy=False)#
+            # url_get_content = requests_get(url, proxy=proxy)#
+            url_get_content = selenium_get(url, proxy=False, driver=driver)#
             # time.sleep(random.randint(2,4))
             time.sleep(random.uniform(1, 3))
             with open(P_url, "w", encoding="utf-8") as f:
@@ -352,8 +354,11 @@ def requests_get(url, proxy=False):
 
 
 @cache
-def selenium_get(url, wait_time=2, proxy=False):
-    driver = init_driver(proxy=proxy)
+def selenium_get(url, wait_time=2, proxy=False, driver=None):
+    close_driver = False
+    if driver is None:
+        close_driver = True
+        driver = init_driver(proxy=proxy, headless=False)
     # wait = WebDriverWait(driver, 2)
     driver.get(url)
     # scroll_bottom(driver, wait_time=1)
@@ -366,7 +371,8 @@ def selenium_get(url, wait_time=2, proxy=False):
     # body = wait.until(EC.visibility_of_element_located((By.XPATH, "/body")))
     # outerHTML = body.get_attribute("outerHTML")
     html_source = driver.page_source
-    driver.close()
+    if close_driver:
+        driver.close()
     return html_source
 
 

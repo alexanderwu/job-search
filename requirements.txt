@@ -70,6 +70,10 @@ certifi==2025.11.12
     #   selenium
     #   seleniumbase
     #   sentry-sdk
+cffi==2.0.0
+    # via
+    #   gevent
+    #   trio
 chardet==5.2.0
     # via seleniumbase
 charset-normalizer==3.4.4
@@ -88,9 +92,16 @@ close-chrome==4.0.40
     # via botasaurus
 colorama==0.4.6
     # via
+    #   click
     #   griffe
+    #   ipython
+    #   mkdocs
     #   mkdocs-material
+    #   pdbp
+    #   pytest
     #   seleniumbase
+    #   tqdm
+    #   uvicorn
 comm==0.2.3
     # via
     #   ipykernel
@@ -302,8 +313,6 @@ mkdocstrings==0.30.1
     #   mkdocstrings-python
 mkdocstrings-python==1.18.2
     # via mkdocstrings
-mouseinfo==0.1.3
-    # via pyautogui
 msgspec==0.20.0
     # via lmstudio
 mycdp==1.3.1
@@ -362,8 +371,6 @@ pathspec==0.12.1
     # via mkdocs
 pdbp==1.8.1
     # via seleniumbase
-pexpect==4.9.0
-    # via ipython
 pillow==11.3.0
     # via matplotlib
 pip==25.3
@@ -397,8 +404,6 @@ psycopg2-binary==2.9.11
     # via job-search (pyproject.toml)
 psygnal==0.15.0
     # via anywidget
-ptyprocess==0.7.0
-    # via pexpect
 pure-eval==0.2.3
     # via stack-data
 pyarrow==21.0.0
@@ -409,8 +414,8 @@ pyasn1==0.6.1
     #   rsa
 pyasn1-modules==0.4.2
     # via google-auth
-pyautogui==0.9.54
-    # via seleniumbase
+pycparser==3.0
+    # via cffi
 pydantic==2.12.4
     # via
     #   job-search (pyproject.toml)
@@ -419,8 +424,6 @@ pydantic==2.12.4
     #   google-genai
 pydantic-core==2.41.5
     # via pydantic
-pygetwindow==0.0.9
-    # via pyautogui
 pygments==2.19.2
     # via
     #   ipython
@@ -434,20 +437,16 @@ pymdown-extensions==10.16.1
     # via
     #   mkdocs-material
     #   mkdocstrings
-pymsgbox==2.0.1
-    # via pyautogui
 pynose==1.5.5
     # via seleniumbase
 pyotp==2.9.0
     # via seleniumbase
 pyparsing==3.2.5
     # via matplotlib
-pyperclip==1.11.0
-    # via mouseinfo
-pyrect==0.2.0
-    # via pygetwindow
-pyscreeze==1.0.1
-    # via pyautogui
+pyreadline3==3.5.4
+    # via
+    #   seleniumbase
+    #   tabcompleter
 pysocks==1.7.1
     # via urllib3
 pytest==9.0.1
@@ -486,20 +485,16 @@ python-dotenv==1.1.1
     #   webdriver-manager
 python-multipart==0.0.20
     # via fastapi
-python-xlib==0.33
-    # via seleniumbase
-python3-xlib==0.15
-    # via
-    #   mouseinfo
-    #   pyautogui
 pytweening==1.2.0
-    # via
-    #   botasaurus-humancursor
-    #   pyautogui
+    # via botasaurus-humancursor
 pytz==2025.2
     # via pandas
 pyvirtualdisplay==3.0
     # via botasaurus-driver
+pywin32==311
+    # via
+    #   docx2pdf
+    #   jupyter-core
 pyyaml==6.0.3
     # via
     #   job-search (pyproject.toml)
@@ -570,7 +565,6 @@ six==1.17.0
     #   markdownify
     #   parse-type
     #   python-dateutil
-    #   python-xlib
     #   seleniumbase
 sniffio==1.3.1
     # via
@@ -664,8 +658,6 @@ uvicorn==0.38.0
     #   fastapi
     #   fastapi-cli
     #   fastapi-cloud-cli
-uvloop==0.22.1
-    # via uvicorn
 watchdog==6.0.0
     # via mkdocs
 watchfiles==1.1.1
