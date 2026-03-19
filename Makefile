@@ -1,4 +1,4 @@
-.PHONY: gdrive sync clean lint format test docs docs-serve dataset serve create-database postgres
+.PHONY: upload download sync clean lint format test docs docs-serve dataset serve create-database postgres
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
@@ -12,8 +12,11 @@ PYTHON_INTERPRETER = python
 #################################################################################
 
 ## Sync gDrive changes
-gdrive:
+upload:
 	rclone copy data gdrive:Dev/data --progress
+
+download:
+	rclone copy gdrive:Dev/data data --progress
 
 ## Install Python dependencies
 sync:
