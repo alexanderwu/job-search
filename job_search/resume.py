@@ -19,7 +19,7 @@ from markdown_it import MarkdownIt
 from mdit_py_plugins.front_matter import front_matter_plugin
 import pandas as pd
 
-from job_search.config import P_INTERIM, P_PROCESSED, P_RAW
+from job_search.config import P_INTERIM, P_PROCESSED
 
 P_ALEX_RESUME_MD = Path('data/Alexander_Wu_Resume.md')
 

@@ -210,7 +210,8 @@ def _save_dicts(df, P_save=None, proxy=False):
         log(P_save).info(f"Saved {P_jdf} (N={len(df)})...")
     hash2identifier_dict = dict(zip(df["hash"], df_identifier))
 
-    driver = init_driver(proxy=False, headless=False)#
+    if len(df) > 0:
+        driver = init_driver(proxy=False, headless=False)#
 
     for url in (pbar := tqdm(VIEW_JOB_HTTPS + df["hash"])):
         hash: str = url.split("/")[-1]
@@ -591,6 +592,7 @@ def log(P_query: Path) -> logging.Logger:
 
 
 if __name__ == "__main__":
+    # ruff: noqa: F401
     from job_search.config import P_stem
     P_query_list = [
         P_QUERY / ("DS_NorCal.txt"),
