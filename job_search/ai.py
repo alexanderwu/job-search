@@ -14,6 +14,7 @@ PROMPT_7 = "Summarize top seven job requirements (domain area, expertise, soft s
 def load_resume(verbose=False):
     return load_md(P_RESUME, verbose)
 
+
 def load_md(_md, verbose=False):
     if isinstance(_md, Path):
         with open(_md) as f:
@@ -23,14 +24,17 @@ def load_md(_md, verbose=False):
     else:
         return str(_md)
 
+
 def load_resume38(verbose=False):
-    resume38 = analyze(P_RESUME).iloc[3:38]['_markdown'].pipe('\n'.join)
+    resume38 = analyze(P_RESUME).iloc[3:38]["_markdown"].pipe("\n".join)
     return load_md(resume38, verbose)
+
 
 def llm_extract(_md, prompt=PROMPT_7, model="qwen/qwen3-4b-2507", verbose=False):
     _md = load_md(_md)
     _message = f"{prompt}\n\n{_md}"
     return llm_respond(_message, model=model, verbose=verbose)
+
 
 def llm_respond(_md, model="qwen/qwen3-4b-2507", verbose=True):
     result = _llm_respond(_md)

@@ -11,11 +11,10 @@ PYTHON_INTERPRETER = python
 # COMMANDS                                                                      #
 #################################################################################
 
-## Sync gDrive changes
-upload:
+upload: ## Upload data to gDrive
 	rclone copy data gdrive:Dev/data --progress
 
-download:
+download: ## Download data from gDrive
 	rclone copy gdrive:Dev/data data --progress
 
 ## Install Python dependencies
@@ -26,35 +25,38 @@ sync:
 
 ## Delete all compiled Python files
 clean:
+ifneq ($(wildcard ./downloaded_files/),)
 	rip downloaded_files/
 # 	find . -type f -name "*.py[co]" -delete
 # 	find . -type d -name "__pycache__" -delete
+endif
 
-## Lint using ruff (use `make format` to do formatting)
-lint:
+lint: ## Lint using ruff (use `make format` to do formatting)
 	ruff format --check
 	ruff check
 
-## Format source code with ruff
-format:
+format: ## Format source code with ruff
 	ruff check --fix
 	ruff format
 
 test:
 	python -m pytest tests
 
-docs:  ## build the static version of the docs
+## build the static version of the docs
+docs:
 	cd docs && mkdocs build
 
-docs-serve: ## serve documentation to livereload while you work
+## serve documentation to livereload while you work
+docs-serve:
 	cd docs && mkdocs serve
 
-dataset:
+dataset: ## dataset
 	python job_search/dataset.py
 
-resume:
+resume: ## resume
 	python job_search/resume.py
 
+## serve backend
 serve:
 	fastapi dev job_search/backend.py
 
@@ -66,12 +68,6 @@ postgres:
 	docker exec -it postgres-db psql -U wua27 -d postgres
 
 #################################################################################
-# PROJECT RULES                                                                 #
-#################################################################################
-
-
-
-#################################################################################
 # Self Documenting Commands                                                     #
 #################################################################################
 
@@ -80,9 +76,9 @@ postgres:
 define PRINT_HELP_PYSCRIPT
 import re, sys; \
 lines = '\n'.join([line for line in sys.stdin]); \
-matches = re.findall(r'\n## (.*)\n[\s\S]+?\n([a-zA-Z_-]+):', lines); \
-print('Available rules:\n'); \
-print('\n'.join(['{:25}{}'.format(*reversed(match)) for match in matches]))
+matches = re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', lines, re.M); \
+_MAGENTA, _RESET = '\033[35m', '\033[0m'; \
+print('\n'.join([f'{_MAGENTA}{m[0]:20}{_RESET}{m[1]}' for m in matches]))
 endef
 export PRINT_HELP_PYSCRIPT
 
