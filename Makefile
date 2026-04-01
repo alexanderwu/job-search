@@ -6,10 +6,18 @@
 PROJECT_NAME = job_search
 PYTHON_VERSION = 3.12
 PYTHON_INTERPRETER = python
+# PY_312 = ~/miniconda3/envs/py312/python
+PY_312 = C:\Users\Alex\miniconda3\envs\py312\python.exe
+PY_SCRIPTS = C:\Users\Alex\miniconda3\envs\py312\Scripts
+JOB_MIGRATE = C:\Users\Alex\miniconda3\envs\py312\Scripts\job-migrate.exe
+
 
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
+
+make: ## Edit makefile
+	code Makefile
 
 upload: ## Upload data to gDrive
 	rclone copy data gdrive:Dev/data --progress
@@ -40,7 +48,7 @@ format: ## Format source code with ruff
 	ruff format
 
 test:
-	python -m pytest tests
+	@$(PY_312) -m pytest tests
 
 ## build the static version of the docs
 docs:
@@ -50,11 +58,14 @@ docs:
 docs-serve:
 	cd docs && mkdocs serve
 
+migrate: ## migrate
+	@$(JOB_MIGRATE)
+
 dataset: ## dataset
-	python job_search/dataset.py
+	@$(PY_312) job_search/dataset.py
 
 resume: ## resume
-	python job_search/resume.py
+	@$(PY_312) job_search/resume.py
 
 ## serve backend
 serve:

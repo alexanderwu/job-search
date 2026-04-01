@@ -3,7 +3,8 @@ import pickle
 import re
 
 import duckdb
-from IPython.display import Markdown, display
+from IPython.display import HTML, display
+import markdown
 from markdownify import markdownify as md
 import pandas as pd
 
@@ -52,6 +53,7 @@ def load_jobs(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
         jobs_df['health'] = cmask(['health', 'medical', 'biotech'], col='company_activities')
         jobs_df['jan'] = jobs_df['estimated_publish_date'] >= "2026-01-01"
         jobs_df['feb'] = jobs_df['estimated_publish_date'] >= "2026-02-01"
+        jobs_df['mar'] = jobs_df['estimated_publish_date'] >= "2026-03-01"
         jobs_df['position'] = (
             (jobs_df["company_name"].fillna('') + " - " + jobs_df["title"])
             .str.replace(r"[/|:\\*?]", "_", regex=True)
@@ -217,13 +219,14 @@ def display_hash(_hash=HASH, verbose=True):
     _technical_tools = _row['technical_tools'].iloc[0]
     _replace_list = [*_technical_tools, 'AI']
     for tool in _replace_list:
-        _md = re.sub(rf"\b{tool}\b", f'<span style="color: rebeccapurple">{tool}</span>', _md)
+        _md = re.sub(rf"\b{tool}\b", f'<span style="color: mediumpurple">{tool}</span>', _md)
     return _display_md(_md, verbose=verbose)
 
 def _display_md(_md, verbose=True):
     if verbose:
-        _markdown = f'<div style="font-size:16px;max-width:45rem;margin:0 auto;">{str(_md)}</div>'
-        return display(Markdown(_markdown))
+        _html = markdown.markdown(_md)
+        _html_centered = f'<div style="font-size:16px;max-width:45rem;margin:0 auto;">{_html}</div>'
+        return display(HTML(_html_centered))
     print(_md)
 
 def hash2md(hash, verbose=False):
