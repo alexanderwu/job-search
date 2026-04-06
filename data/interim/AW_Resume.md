@@ -2,7 +2,7 @@
 alexander.wu7@gmail.com | 510-936-3258 | LinkedIn /in/alexanderwu7 | San Francisco Bay Area, CA | US Citizen
 <!-- alexander.wu7@gmail.com | 555-555-5555 | LinkedIn /in/alexanderwu7 | San Francisco Bay Area, CA | US Citizen -->
 
-**Data Scientist**
+**Data Scientist | Python Specialist**
 Full-stack Data Scientist with 5+ years of experience delivering real-world insights and solutions end-to-end from ideation to deployment in the healthcare and technology sectors. Expansive skill set with a strong focus on AI, machine learning, and software engineering. Enthusiastic collaborator, working with stakeholders to support data-driven decision-making and partnering with cross-functional teams to productionize machine learning models. Passionate about solving real business challenges and delighting end users.
 
 ## **SKILLS**
@@ -21,7 +21,7 @@ Full-stack Data Scientist with 5+ years of experience delivering real-world insi
 **Protein Design Technology**, Emeryville, CA	**January 2025 – Present**
 <!-- **AI Researcher (Computational Biology)** -->
 <!-- Implemented AI approaches for predicting antibody-antigen binding to save costs in drug discovery. -->
-As part of a startup, leveraged proprietary and public datasets to develop predictive AI model for drug discovery.
+As part of a startup, leveraged proprietary and public datasets to develop predictive AI model for antibody drug discovery.
 
 - Integrated antibody sequences from SAbDab (public dataset), phage display, and FACS (flow cytometry) data to create training and evaluation set for AI model
 - Built a reproducible end-to-end ML pipeline in Python, establishing coding standards and Git workflows for maintainability and scalability
@@ -32,7 +32,7 @@ As part of a startup, leveraged proprietary and public datasets to develop predi
 Analyzed large-scale healthcare datasets and developed machine learning solutions to support clinical research, product strategy, and diagnostic innovation.
 
 - Executed a health economics and outcomes research (HEOR) study comparing healthcare resource utilization and total costs of diabetes monitoring devices from large-scale claims data (MarketScan) using propensity score matching, resulting in publication in a peer-reviewed journal (AJMC) and supporting Roche Diabetes Care commercial strategy
-- Developed and deployed ML pipeline with NLP (Named Entity Recognition, Relation Extraction) pipeline to extract clinical facts from unstructured pathology reports, reducing manual entry time by ~50% and enabling longitudinal patient tracking within navify Clinical Hub
+- Developed and deployed ML pipeline with NLP (Named Entity Recognition, Relation Extraction) and LLMs to extract clinical facts from unstructured pathology reports, reducing manual entry time by ~50% and enabling longitudinal patient tracking within navify Clinical Hub
 - Conducted epidemiological studies using SEER cancer registry data to discover prevalence and incidence trends, delivering visualized insights for Medical Affairs stakeholders
 - Built an interactive Streamlit dashboard to showcase automated traversal of NCCN clinical guidelines from patient EHR data, facilitating customer interviews that informed future product use-cases
 - Conducted exploratory data analysis (EDA) and feasibility assessments (chart review and TriNetX EHR data) of the IL-6 immunoassay, supporting FDA Q-Sub regulatory submissions in the context of neonatal sepsis diagnosis and COVID patient intubation risk stratification

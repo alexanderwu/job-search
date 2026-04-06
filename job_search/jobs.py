@@ -91,7 +91,7 @@ def load_jobs2026(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame
 
 @cache
 def load_jobs_feb(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
-    jobs_df = load_jobs(clean, overwrite)
+    jobs_df = load_jobs(db, clean, overwrite)
     jobs_feb = (jobs_df.query('estimated_publish_date >= "2026-02-01"')
         .sort_values('estimated_publish_date', ascending=False)
         .reset_index(drop=True))[COLS]

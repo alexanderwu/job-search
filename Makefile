@@ -67,6 +67,9 @@ dataset: ## dataset
 resume: ## resume
 	@$(PY_312) job_search/resume.py
 
+db2json: ## db2json
+	@$(PY_312) scripts/db2json.py
+
 ## serve backend
 serve:
 	fastapi dev job_search/backend.py
