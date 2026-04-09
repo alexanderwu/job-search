@@ -64,6 +64,9 @@ migrate: ## migrate
 dataset: ## dataset
 	@$(PY_312) job_search/dataset.py
 
+jobs: ## jobs
+	@$(PY_312) job_search/jobs.py
+
 resume: ## resume
 	@$(PY_312) job_search/resume.py
 

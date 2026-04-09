@@ -377,3 +377,31 @@ def chashes(keywords, contains=True, case=False, jobs_df=None, col=MASK_COLS):
         jobs_df = load_jobs()
         hashes = hashes & set(jobs_df['_hash'])
     return hashes
+
+
+if __name__ == "__main__":
+    # ruff: noqa: F401
+    from job_search.config import P_CACHE, P_ROOT
+    from job_search.jobs import load_jobs
+
+    assert (P_astro := P_ROOT.parent / 'job-astro' / 'src/data').exists()
+    COLS = [
+        'requisition_id',
+        'title',
+        'estimated_publish_date',
+        'formatted_workplace_location',
+        'yearly_min_compensation',
+        'yearly_max_compensation',
+        'listed_compensation_frequency',
+        'workplace_type',
+        'commitment',
+        'requirements_summary',
+        'min_industry_role_yoe',
+        'company_name',
+        'company_tagline',
+        'technical_tools',
+    ]
+    jobs_df = load_jobs(overwrite=True)
+    (jobs_df.query('mar')[COLS]
+        .rename(columns={'requisition_id': 'id', 'company_tagline': 'tagline'})
+        .to_json(P_astro / 'jobs_mar.json', orient='records'))
