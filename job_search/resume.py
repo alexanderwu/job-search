@@ -263,10 +263,10 @@ if __name__ == "__main__":
     # P_resume = P_INTERIM / 'AW_Tempus_Resume.md'
     # P_resume = P_INTERIM / 'AW_Komodo_Resume.md'
     # P_resume = P_INTERIM / 'AW_Paypal_Resume.md'
-    # P_resume = P_INTERIM / 'AW_Resume.md'
-    P_resume = P_INTERIM / 'AW_Q2BI_Resume.md'
-    convert_resume(P_resume, keep_docx=False, pagebreak=False)
-    # convert_resume(P_resume, keep_docx=True, pagebreak=False)
+    P_resume = P_INTERIM / 'AW_Resume.md'
+    # P_resume = P_INTERIM / 'AW_Q2BI_Resume.md'
+    # convert_resume(P_resume, keep_docx=False, pagebreak=False)
+    convert_resume(P_resume, keep_docx=True, pagebreak=False)
     # convert_resume(P_resume, keep_docx=True, pagebreak=True)
     # print(f'swriter --headless --convert-to pdf "data/interim/{P_resume.stem}.docx" --outdir data/processed/')
     #swriter --headless --convert-to pdf "data/interim/AW_Genentech_MDAE_Resume.docx" --outdir data/processed/

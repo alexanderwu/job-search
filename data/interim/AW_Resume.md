@@ -12,7 +12,7 @@ Full-stack Data Scientist with 5+ years of experience delivering real-world insi
 - **Visualization and Communication:** Plotly, Matplotlib, Streamlit, Figma, stakeholder reporting
 - **Statistical Modeling:** Experimental design, Propensity score matching, Causal inference, Hypothesis testing
 - **Machine Learning:** Regression, SVM, Random Forests, Gradient Boosting, Neural Networks
-- **Web Technology:** REST API, HTML, CSS, PostgreSQL, Duckdb
+- **Web Technology:** REST API, Node.js, React, Tailwind CSS, PostgreSQL, DuckDB
 - **Software Practices:** Agile development, unit testing, code review, CI/CD pipelines, version control (Git)
 - **Big Data and Cloud:** Spark, Hadoop, Docker, Linux, Git, AWS (Amazon Web Services)
 
@@ -21,7 +21,7 @@ Full-stack Data Scientist with 5+ years of experience delivering real-world insi
 **Protein Design Technology**, Emeryville, CA	**January 2025 – Present**
 <!-- **AI Researcher (Computational Biology)** -->
 <!-- Implemented AI approaches for predicting antibody-antigen binding to save costs in drug discovery. -->
-As part of a startup, leveraged proprietary and public datasets to develop predictive AI model for antibody drug discovery.
+As part of a startup, leveraged proprietary and public datasets to develop predictive AI models for antibody drug discovery.
 
 - Integrated antibody sequences from SAbDab (public dataset), phage display, and FACS (flow cytometry) data to create training and evaluation set for AI model
 - Built a reproducible end-to-end ML pipeline in Python, establishing coding standards and Git workflows for maintainability and scalability
