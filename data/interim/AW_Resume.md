@@ -2,15 +2,15 @@
 alexander.wu7@gmail.com | 510-936-3258 | LinkedIn /in/alexanderwu7 | San Francisco Bay Area, CA | US Citizen
 <!-- alexander.wu7@gmail.com | 555-555-5555 | LinkedIn /in/alexanderwu7 | San Francisco Bay Area, CA | US Citizen -->
 
-**Data Scientist | Python Specialist**
-Full-stack Data Scientist with 5+ years of experience delivering real-world insights and solutions end-to-end from ideation to deployment in the healthcare and technology sectors. Expansive skill set with a strong focus on AI, machine learning, and software engineering. Enthusiastic collaborator, working with stakeholders to support data-driven decision-making and partnering with cross-functional teams to productionize machine learning models. Passionate about solving real business challenges and delighting end users.
+**Data Scientist | AI Engineer**
+Full-stack Data Scientist and AI Engineer with 5+ years of experience delivering real-world insights and solutions end-to-end from ideation to deployment in the healthcare and drug discovery space. Expansive skill set with a strong focus on AI, machine learning, and software engineering. Enthusiastic collaborator, working with stakeholders to support data-driven decision-making and partnering with cross-functional teams to productionize machine learning models. Passionate about solving real business challenges and delighting end users.
 
 ## **SKILLS**
 
 - **Languages and Programming:** Python, SQL, R, JavaScript, Java, C++
 - **Python for Data Science:** Pandas, NumPy, Scikit-learn, PyTorch, Jupyter Notebook
 - **Visualization and Communication:** Plotly, Matplotlib, Streamlit, Figma, stakeholder reporting
-- **Statistical Modeling:** Experimental design, Propensity score matching, Causal inference, Hypothesis testing
+- **Statistical Modeling:** Experimental design, Causal inference, Propensity score matching, Hypothesis testing
 - **Machine Learning:** Regression, SVM, Random Forests, Gradient Boosting, Neural Networks
 - **Web Technology:** REST API, Node.js, React, Tailwind CSS, PostgreSQL, DuckDB
 - **Software Practices:** Agile development, unit testing, code review, CI/CD pipelines, version control (Git)
@@ -19,7 +19,7 @@ Full-stack Data Scientist with 5+ years of experience delivering real-world insi
 ## **EXPERIENCE**
 
 **Protein Design Technology**, Emeryville, CA	**January 2025 – Present**
-<!-- **AI Researcher (Computational Biology)** -->
+**Consultant (AI Engineer)**
 <!-- Implemented AI approaches for predicting antibody-antigen binding to save costs in drug discovery. -->
 As part of a startup, leveraged proprietary and public datasets to develop predictive AI models for antibody drug discovery.
 
