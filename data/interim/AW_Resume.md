@@ -3,7 +3,7 @@ alexander.wu7@gmail.com | 510-936-3258 | LinkedIn /in/alexanderwu7 | San Francis
 <!-- alexander.wu7@gmail.com | 555-555-5555 | LinkedIn /in/alexanderwu7 | San Francisco Bay Area, CA | US Citizen -->
 
 **Data Scientist | AI Engineer**
-Full-stack Data Scientist and AI Engineer with 5+ years of experience delivering real-world insights and solutions end-to-end from ideation to deployment in the healthcare and drug discovery space. Expansive skill set with a strong focus on AI, machine learning, and software engineering. Enthusiastic collaborator, working with stakeholders to support data-driven decision-making and partnering with cross-functional teams to productionize machine learning models. Passionate about solving real business challenges and delighting end users.
+Full-stack Data Scientist and AI Engineer with 5+ years of experience delivering real-world insights and solutions end-to-end from ideation to deployment in the healthcare and technology sectors. Expansive skill set with a strong focus on AI, machine learning, and software engineering. Enthusiastic collaborator, working with stakeholders to support data-driven decision-making and partnering with cross-functional teams to productionize machine learning models. Passionate about solving real business challenges and delighting end users.
 
 ## **SKILLS**
 

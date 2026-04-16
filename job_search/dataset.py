@@ -407,6 +407,7 @@ def load_jdf(P_save: Path | str = P_STEM) -> pd.DataFrame:
             raise
 
     company_ = None
+    html_string = html_string.replace('<!-- -->','')
     if html_string:
         tree = lxml.html.fromstring(html_string)
         _title_elem = tree.xpath("head/title")
@@ -438,7 +439,9 @@ def load_jdf(P_save: Path | str = P_STEM) -> pd.DataFrame:
         if not use_chash:
             raw_texts.insert(6, company_)
             raw_texts.insert(7, None)
-        if raw_texts[7].startswith(":"):
+        ## Doesn't look like a stock (Ex: "NYSE: NOW")
+        # if raw_texts[7].startswith(":"):
+        if (_stock := raw_texts[7].split(': ', maxsplit=1)[-1]) != _stock.upper():
             raw_texts.insert(7, "-")
         if not raw_texts[9].endswith("YOE"):
             raw_texts.insert(9, "-")
@@ -494,9 +497,8 @@ def load_jdf(P_save: Path | str = P_STEM) -> pd.DataFrame:
             "_views",
             "hash",
         ]
-    HEADER_COLS = np.array(_HEADER_COLS)
-
-    jdf = pd.DataFrame(raw_texts_list, columns=HEADER_COLS).replace(r"\s+", " ", regex=True)
+    # HEADER_COLS = np.array(_HEADER_COLS)
+    jdf = pd.DataFrame(raw_texts_list, columns=_HEADER_COLS).replace(r"\s+", " ", regex=True)
     assert all(jdf["_job_posting"] == "Job Posting")
     jdf["company"] = jdf["company"].str.removesuffix(':').str.replace('"', "'").str.replace("’", "'")
     jdf = jdf.drop(columns=["_job_posting", "_views"])
@@ -600,6 +602,6 @@ if __name__ == "__main__":
     ]
     for P_query in P_query_list:
         P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
-        # P_save = P_DATA / 'processed/2026-02-16/DS_NorCal' / 'DS_NorCal.html'
+        # P_save = P_DATA / 'processed/2026-04-13/DS_NorCal' / 'DS_NorCal.html'
         # P_save = P_stem
         main1(P_save, proxy=True)
