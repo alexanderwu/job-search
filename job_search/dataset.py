@@ -2,8 +2,7 @@
 """
 Download job description
 """
-
-from functools import cache
+from functools import cache, partial
 from itertools import chain
 import json
 import logging
@@ -120,70 +119,85 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     log(P_save).info(_query_str)
 
     if bare:
-        scroll_jobs_outer_html = ""
+        grid_jobs_outer_html = ""
         _title = f"{P_save.stem} (N=)"
-        _data = dict(body=scroll_jobs_outer_html, title=_title, description=query_url)
-        scroll_jobs_html = render_template(**_data).replace("</source>", "")
+        _data = dict(body=grid_jobs_outer_html, title=_title, description=query_url)
+        grid_jobs_html = render_template(**_data).replace("</source>", "")
         with open(P_save, "w", encoding="utf-8") as f:
-            f.write(scroll_jobs_html)
+            f.write(grid_jobs_html)
         return P_save
 
     driver = init_driver(headless=False, proxy=proxy)
     driver.maximize_window()
     driver.get(query_url)
-    time.sleep(2)
-    scroll_bottom(driver)
 
-    _SCROLL_XPATH = "//div[@class='infinite-scroll-component__outerdiv']"
+    def querySelector(selectors, elem=driver):
+        return elem.find_elements(By.CSS_SELECTOR, selectors)
+    def querySelectorAll(selectors, elem=driver):
+        return elem.find_elements(By.CSS_SELECTOR, selectors)
+    def children(elem):
+        return elem.find_elements(By.XPATH, "./*")
+
+    time.sleep(2)
+    # scroll_bottom(driver)
+
+    _GRID = "div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']"
     try:
         # scroll_jobs = wait.until(EC.visibility_of_element_located((By.XPATH, _SCROLL_XPATH)))
-        scroll_jobs = driver.wait_for_element(_SCROLL_XPATH)
-        scroll_jobs_outer_html = scroll_jobs.get_attribute("outerHTML")
+        grid = driver.wait_for_element(_GRID)
+        grid.children = partial(children, grid)
+        # grid_jobs_outer_html = grid.get_attribute("outerHTML")
     # except TimeoutException:
     except Exception:
         log(P_save).warning(f"Could not save {P_save}...")
-        scroll_jobs_outer_html = ""
+        grid_jobs_outer_html = ""
         input("Press ENTER to continue...")
 
-    # _CLASS = "//div[@class='relative bg-white rounded-xl border border-gray-200 shadow hover:border-gray-500 md:hover:border-gray-200']"
-    # N = len(lxml.html.fromstring(scroll_jobs_outer_html).xpath(_CLASS))
-    _grid = driver.find_element(
-        "div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']"
-    )
-    N = len(_grid.find_elements(By.XPATH, "./*"))
-    log(P_save).info(f"Saving {P_save} (N={N})...")
+    N_initial = len(grid.children())
+    log(P_save).info(f"(N_initial={N_initial})...")
 
     ## Expand job cards
-    # N_clicks = len(driver.find_elements("button[class='rounded-full bg-gray-400 w-1.5 h-1.5 flex-none']"))
-    # log(P_save).info(f"Expanding jobs (N_clicks={N_clicks})...")
-    # SCRIPT_INSERT_CARDS = dedent('''
-    #     const clicks = document.querySelectorAll("button[class='rounded-full bg-gray-400 w-1.5 h-1.5 flex-none']")
-    #     const grid = document.querySelector("div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']")
-    #     console.log(grid)
-    #     function insertCardBefore(e) {
-    #         const card = this.closest("div[class='relative xl:z-10']");
-    #         grid.insertBefore(card.cloneNode(true), card);
-    #     }
-    #     clicks.forEach((btn, index) => {
-    #         btn.addEventListener("click", insertCardBefore, true);
-    #         setTimeout(() => {
-    #             btn.click()
-    #         }, index*700)
-    #     });
-    # ''')
-    # driver.execute_script(SCRIPT_INSERT_CARDS)
-    # time.sleep(1 + N_clicks*0.77)
+    driver.execute_script(_SCRIPT := dedent("""
+        let grid = document.querySelector("div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']")
+        let click_rows = document.querySelectorAll("div[class='flex items-center space-x-2']")
+        let click_rows_btns = [...click_rows].map(row => row.querySelectorAll("button[class='rounded-full bg-gray-400 w-1.5 h-1.5 flex-none']"))
+        let clicks1 = [...click_rows_btns].map(x => [...x]?.[0]).filter(x => x)
+        let clicks2 = [...click_rows_btns].map(x => [...x]?.[1]).filter(x => x)
+        let clicks3 = [...click_rows_btns].map(x => [...x]?.[2]).filter(x => x)
+        let clicks_123 = [clicks1, clicks2, clicks3]
+
+        console.log(document.querySelectorAll("div[class='relative xl:z-10']").length)
+
+        clicks_123.forEach((clicks, index) => {
+            setTimeout(() => {
+                clicks.forEach((btn) => {
+                    let card = btn.closest("div[class='relative xl:z-10']");
+                    grid.insertBefore(card.cloneNode(true), card);
+                    btn.click()
+                });
+            }, index*999)
+        });
+
+        console.log(clicks_123.flat().length)
+        console.log(document.querySelectorAll("div[class='relative xl:z-10']").length)
+        console.log(grid)
+    """))
+    time.sleep(4)
     # _grid = driver.find_element("div[class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-12 md:gap-x-10 px-4 md:px-8 xl:px-16 pb-4']")
     # N_expanded = len(_grid.find_elements(By.XPATH, "./*"))
     # scroll_jobs = driver.wait_for_element(_SCROLL_XPATH)
 
     # _title = f"{P_save.stem} (N={N}, N_expanded={N_expanded})"
+
+    N = len(grid.children())
+    grid_jobs_outer_html = grid.get_attribute('outerHTML')
+    log(P_save).info(f"Saving {P_save} (N={N})...")
     _title = f"{P_save.stem} (N={N})"
-    _data = dict(body=scroll_jobs_outer_html, title=_title, description=query_url)
-    scroll_jobs_html = render_template(**_data).replace("</source>", "")
+    _data = dict(body=grid_jobs_outer_html, title=_title, description=query_url)
+    grid_jobs_html = render_template(**_data).replace("</source>", "")
 
     with open(P_save, "w", encoding="utf-8") as f:
-        f.write(scroll_jobs_html)
+        f.write(grid_jobs_html)
 
     return P_save
 
@@ -601,7 +615,8 @@ if __name__ == "__main__":
         # P_QUERY / ('DS_Healthcare.txt'),
     ]
     for P_query in P_query_list:
-        P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
+        P_save = main0(P_query, overwrite=False)
+        # P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
         # P_save = P_DATA / 'processed/2026-04-13/DS_NorCal' / 'DS_NorCal.html'
         # P_save = P_stem
         main1(P_save, proxy=True)
