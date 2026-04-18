@@ -132,7 +132,7 @@ def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
     driver.get(query_url)
 
     def querySelector(selectors, elem=driver):
-        return elem.find_elements(By.CSS_SELECTOR, selectors)
+        return elem.find_element(By.CSS_SELECTOR, selectors)
     def querySelectorAll(selectors, elem=driver):
         return elem.find_elements(By.CSS_SELECTOR, selectors)
     def children(elem):

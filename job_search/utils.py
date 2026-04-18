@@ -24,9 +24,9 @@ def jupyter_css_style():
     css_style = HTML("""
         <!-- https://stackoverflow.com/questions/71534901/make-tqdm-bar-dark-in-vscode-jupyter-notebook -->
         <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
+        .cell-output-ipywidget-background { background-color: transparent !important; }
+        .output_html { background: transparent !important; }
+        .highlight { background: transparent !important; }
         :root {
             --jp-widgets-color: var(--vscode-editor-foreground);
             --jp-widgets-font-size: var(--vscode-editor-font-size);
