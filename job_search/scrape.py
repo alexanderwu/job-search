@@ -1,312 +1,326 @@
-#!/usr/bin/env python3
-"""
-Download job description
-"""
-from functools import cache, partial
-from itertools import chain
+from functools import cache
+import gzip
 import json
-import logging
 from pathlib import Path
-import pickle
 import random
-import re
-from textwrap import dedent
 import time
-import urllib.parse
-from warnings import filterwarnings
 
-import lxml.html
-from markdownify import markdownify as md
+from botasaurus.user_agent import UserAgent
+from botasaurus_requests import request
+from IPython.display import Code
+from lxml import etree
+from lxml.etree import _Element as Element
+from lxml.etree import _ElementTree as ElementTree
 import pandas as pd
-from selenium.webdriver import ActionChains
-from selenium.webdriver.common.by import By
-from seleniumbase import Driver
-from tqdm import TqdmExperimentalWarning
-from tqdm.rich import tqdm
+import requests
+from tqdm import tqdm
 
-from job_search.config import (
-    # P_ALL_COMPANY_URLS,
-    # P_CACHE,
-    P_DATA,
-    P_DATE,
-    P_DICT,
-    P_JOBS,
-    P_QUERY,
-    P_STEM,
-    P_STEM_PREV,
-    P_URLS,
-    QUERY_LIST,
-    VIEW_JOB_HTTPS,
-)
-from job_search.utils import is_running_wsl
+from job_search.config import P_INTERIM, P_RAW
+from job_search.utils import now
 
-filterwarnings("ignore", category=TqdmExperimentalWarning)
+USER_AGENT_106 = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.37'
+HIRING_CAFE = "https://hiring.cafe"
+HIRING_CAFE_ = "https://hiring.cafe/"
+_NEXT_PREFIX = "_next/data/KHL6pwrRx0qXfmkGIviUb"
+P_raw_date = P_RAW / now(time=False).replace('-', '/')
+P_interim_date = P_INTERIM / now(time=False).replace('-', '/')
 
-# Selenium options
-SCROLL_PAUSE_TIME = 0.5
-WAIT_TIME = 10
+SITEMAP = 'sitemap'
+SITEMAP_INDEX = 'sitemap-index'
+SITEMAP_COMPANIES = 'sitemap-companies-index'
+SITEMAP_JOB_TITLES = 'sitemap-job-titles-index'
+SITEMAP_LOCATIONS = 'sitemap-locations-index'
 
 
-def init_driver(headless=True, proxy=False):
-    PROXY = None
-    # Use proxy. Format: "SERVER:PORT" or "USER:PASS@SERVER:PORT".
+def load_sitemap(sitemap=SITEMAP_LOCATIONS, overwrite=False, verbose=True):
+    P_sitemap = P_interim_date / f'{sitemap}.parquet'
+    if P_sitemap.exists() and not overwrite:
+        print('Loading from:', P_sitemap)
+        sitemap_df = pd.read_parquet(P_sitemap)
+        return sitemap_df
+    _sitemap_list = load_tree(sitemap)['sitemap']
+    if verbose:
+        _sitemap_list = tqdm(_sitemap_list)
+    _location_list = [load_tree(x) for x in _sitemap_list]
+    sitemap_df = pd.concat(_location_list)
+    if verbose:
+        print('Saving to:', P_sitemap)
+    P_sitemap.parent.mkdir(parents=True, exist_ok=True)
+    sitemap_df.to_parquet(P_sitemap)
+    return sitemap_df
+
+
+def xml(sitemap=SITEMAP, N=60, **kwargs):
+    """Load and display xml"""
+    tree = load_xml(sitemap, **kwargs)
+    return _display_xml(tree, N=N)
+
+
+def load_tree(sitemap=SITEMAP_INDEX, gz=True, overwrite=False, verbose=False):
+    tree = load_xml(sitemap, gz, overwrite, verbose)
+    NSMAP = {'s': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+    loc = pd.Series([x.text for x in tree.xpath('//s:loc[text()]', namespaces=NSMAP)])
+    tree_df = pd.DataFrame({
+        # 'loc': loc,
+        'sitemap': loc.str.removeprefix(HIRING_CAFE_),
+        'lastmod': [x.text for x in tree.xpath('//s:lastmod[text()]', namespaces=NSMAP)],
+    })
+    return tree_df
+
+
+def load_xml(sitemap=SITEMAP, gz=True, overwrite=False, verbose=True) -> ElementTree:
+    """Load sitemap xml if it exists on local path, otherwise scrape and save to path"""
+    if overwrite:
+        return _load_xml.__wrapped__(sitemap, gz, overwrite, verbose)
+    return _load_xml(sitemap, gz, overwrite, verbose)
+
+
+@cache
+def _load_xml(sitemap=SITEMAP, gz=True, overwrite=False, verbose=False) -> ElementTree:
+    # P_sitemap = P_raw_date / sitemap
+    P_sitemap = path_sitemap(sitemap, gz=gz)
+    if P_sitemap.exists() and not overwrite:
+        if verbose:
+            print('Loading from:', P_sitemap)
+        tree = etree.parse(P_sitemap)
+        return tree
+
+    tree = scrape_xml(sitemap, overwrite=True, verbose=verbose)
+    _write_xml(tree, sitemap, gz=True, verbose=verbose)
+    return tree
+
+
+def scrape_xml(sitemap=SITEMAP, overwrite=True, verbose=True) -> ElementTree:
+    """Scrape sitemap XML from hiring.cafe"""
+    if not sitemap.startswith(HIRING_CAFE):
+        sitemap = f'{HIRING_CAFE_}/{sitemap}'
+    if not sitemap.endswith('.xml'):
+        sitemap = f'{sitemap}.xml'
+
+    if verbose:
+        print(f"Scraping from: {sitemap}")
+
+    if overwrite:
+        sitemap_xml = _requests_xml.__wrapped__(sitemap)
+    else:
+        sitemap_xml = _requests_xml(sitemap)
+    root = etree.fromstring(sitemap_xml)
+    tree = etree.ElementTree(root)
+    return tree
+
+
+@cache
+def _requests_xml(url: str) -> bytes:
+    _headers = {
+        "User-Agent": USER_AGENT_106,
+        "Referer": "https://hiring.cafe/",
+        "Origin": "https://hiring.cafe",
+        "Sec-Fetch-Dest": "empty",
+        "Accept": "application/xml",
+    }
+    response = requests.get(url, headers=_headers)
+    response.raise_for_status()
+    return response.content
+
+
+def _write_xml(tree: Element | ElementTree, name=SITEMAP, overwrite=False, gz=True, verbose=True):
+    """Save XML to path"""
+    P_save = path_sitemap(name, gz=gz)
+    if P_save.exists() and not overwrite:
+        return
+
+    if verbose:
+        print(f'Saving to: {P_save}')
+    P_save.parent.mkdir(parents=True, exist_ok=True)
+
+    if gz:
+        with gzip.open(P_save, 'wb') as f:
+            tree.write(f, encoding='utf-8', xml_declaration=True)
+    else:
+        tree.write(P_save)
+
+
+def path_sitemap(name: Path | str = SITEMAP, gz=True) -> Path:
+    """Get XML path from sitemap name or URL"""
+    if isinstance(name, Path):
+        return (P_save := name)
+
+    # TODO: add query time option
+    name = name.strip().removeprefix(HIRING_CAFE).removesuffix('.xml')
+    P_raw_date = P_RAW / now(time=False).replace('-', '/')
+    P_save = P_raw_date / f'{name}.xml'
+    if gz:
+        P_save = P_save.parent / f'{name}.xml.gz'
+    return P_save
+
+
+def _display_xml(xml: Element | ElementTree | str, N=60):
+    """Display truncated XML"""
+    if not isinstance(xml, str):
+        xml = etree.tostring(xml, pretty_print=True).decode()
+    if N is not None and xml.count('\n') > N:
+        K = N // 2
+        xml_ = '\n'.join(xml.split('\n', maxsplit=K)[:K])
+        _xml = '\n'.join(xml.rsplit('\n', maxsplit=K)[-K:])
+        xml = f"{xml_}\n...\n{_xml}"
+    return Code(xml)
+
+
+################################################################################
+
+
+def load_ds_job_titles():
+    job_titles_df = load_sitemap(SITEMAP_JOB_TITLES)
+    job_titles = job_titles_df['sitemap'].str.removeprefix('jobs/').str.removesuffix('/locations/united-states')
+
+    # ((data OR ml OR "machine learning" OR "ai" OR "artificial intelligence" OR nlp OR statistical OR bi OR "business intelligence" OR devops OR mlops)
+    #         AND (engineer OR scientist OR science OR programmer))
+    #         AND NOT "software engineer"
+    #         AND NOT "electrical engineer"
+    data_mask = job_titles.str.contains('data')
+    ml_mask = job_titles.str.contains(r'\bml\b') | job_titles.str.contains('machine-learning')
+    ai_mask = job_titles.str.contains(r'\bai\b') | job_titles.str.contains('artificial-intelligence')
+    nlp_mask = job_titles.str.contains(r'\bnlp\b') | job_titles.str.contains('natural-language-processing')
+    bi_mask = job_titles.str.contains(r'\bbi\b') | job_titles.str.contains('business-intelligence')
+    ops_mask = job_titles.str.contains('devops') | job_titles.str.contains('mlops')
+    part1_mask = data_mask | ml_mask | ai_mask | nlp_mask | bi_mask | ops_mask
+    eng_mask = job_titles.str.contains('engineer')
+    science_mask = job_titles.str.contains('scientist') | job_titles.str.contains('science')
+    programmer_mask = job_titles.str.contains('programmer')
+    part2_mask = eng_mask | science_mask | programmer_mask
+    neg_mask = job_titles.str.contains(r'(?:software|electrical)-engineer')
+    ds_mask = part1_mask & part2_mask & ~neg_mask
+    ds_job_titles = job_titles[ds_mask]
+    return ds_job_titles
+
+
+@cache
+def load_jobs(job_title='data-scientist', overwrite=False, verbose=True) -> dict:
+    if overwrite:
+        return _load_jobs.__wrapped__(job_title, overwrite, verbose)
+    return _load_jobs(job_title, overwrite, verbose)
+
+
+def _load_jobs(job_title='data-scientist', overwrite=False, verbose=True) -> dict:
+    P_jobs_json = P_interim_date / f'jobs/{job_title}/page.json.gz'
+    if P_jobs_json.exists() and not overwrite:
+        if verbose:
+            print('Reading:', P_jobs_json)
+        with gzip.open(P_jobs_json, "rt", encoding='utf-8') as f:
+            jobs_dict = json.load(f)
+            return jobs_dict
+
+    # _suffix = f'?jobTitle={job_title}&location=united-states'
+    job_title_json_url = f'{HIRING_CAFE_}{_NEXT_PREFIX}/jobs/{job_title}/locations/united-states.json'
+    job_title_json = requests_get(job_title_json_url)
+
+    if verbose:
+        print('Saving:', P_jobs_json)
+    P_jobs_json.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(P_jobs_json, "wt", encoding="utf-8") as f:
+        jobs_dict = json.loads(job_title_json)
+        json.dump(jobs_dict, f)
+
+    return jobs_dict
+
+
+DS_CA = 'ds-ca-2tzfqdib'
+BOARD_URL = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{DS_CA}.json'
+def load_ds_ca(board=DS_CA, overwrite=False, verbose=True, page=0):
+    assert isinstance(page, int) and page >= 0
+
+    P_jobs_json = P_interim_date / f'{board}/page{page}.json.gz'
+    if P_jobs_json.exists() and not overwrite:
+        if verbose:
+            print('Reading:', P_jobs_json)
+        with gzip.open(P_jobs_json, "rt", encoding='utf-8') as f:
+            jobs_dict = json.load(f)
+    else:
+        board_url = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{DS_CA}.json'
+        url = f'{board_url}?page={page}'
+        job_title_json = requests_get(url)
+        if verbose:
+            print('Saving:', P_jobs_json)
+        P_jobs_json.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(P_jobs_json, "wt", encoding="utf-8") as f:
+            jobs_dict = json.loads(job_title_json)
+            json.dump(jobs_dict, f)
+
+    if not jobs_dict['pageProps']['isLastPage']:
+        sleep()
+        load_ds_ca(board, verbose=verbose, page=page+1)
+
+    return jobs_dict
+
+@cache
+def requests_get(url, proxy=False):
+    _user_agent = USER_AGENT_106
+    _headers = {
+        "User-Agent": _user_agent,
+        "Referer": "https://hiring.cafe/",
+        "Origin": "https://hiring.cafe",
+        "Sec-Fetch-Dest": "empty",
+        # 'proxy': {
+        #     'http': PROXY,
+        #     'https': PROXY,
+        # }
+    }
     if proxy:
         ii = random.randint(1, 44745)
         PROXY = f"byfdawqz-US-{ii}:fhx888ooginw@p.webshare.io:80"
-
-    headless = headless and not is_running_wsl()
-    driver = Driver(uc=True, proxy=PROXY, headless=headless)
-    return driver
-
-
-################################################################################
-# Main Functions
-################################################################################
-
-def main0(path_query: Path, overwrite=False, bare=False, proxy=False) -> Path:
-    """
-    Get data/ds.html to prepare job cards
-    """
-    # datetime_now = now(time=True)
-    P_save = P_DATE / f"{path_query.stem}/{path_query.stem}.html"
-    P_save.parent.mkdir(parents=True, exist_ok=True)
-    query_url = load_query_url(path_query)
-    if bare:
-        print(path_query)
-
-    if not overwrite and P_save.exists():
-        log(P_save).info(f"{P_save} already exists...")
-        return P_save
-
-    query_dict: dict = parse_query_url(query_url)
-    P_query = P_save.parent / f"{P_save.stem}.txt"
-    P_json = P_save.parent / f"{P_save.stem}.json"
-    log(P_save).info(f"Preparing {P_save} outerHTML from {P_query}...")
-    with open(P_query, "w") as f:
-        f.write(query_url)
-    with open(P_json, "w") as f:
-        json.dump(query_dict, f, indent=4)
-
-    def _format_loc(loc):
-        _address = loc["address_components"][0]["long_name"].replace("+", " ")
-        _radius = (
-            f" - {loc['options']['radius']} {loc['options']['radius_unit']}"
-            if loc["options"].keys()
-            else ""
-        )
-        _workplaces = " | ".join(loc["workplace_types"])
-        loc_formatted = f"{_address}{_radius}. {_workplaces}"
-        return loc_formatted
-
-    _job_title_query = query_dict["jobTitleQuery"].replace("+", " ").replace("AND", "\n\tAND")
-    _locations = "\n\t".join([_format_loc(loc) for loc in query_dict["locations"]])
-    _commitment_types = ", ".join(query_dict["commitmentTypes"]).replace("+", " ")
-    _query_str = dedent(f"""{_job_title_query}
-        {_locations}
-        {_commitment_types}
-    """)
-    log(P_save).info(_query_str)
-
-    if bare:
-        grid_jobs_outer_html = ""
-        _title = f"{P_save.stem} (N=)"
-        _data = dict(body=grid_jobs_outer_html, title=_title, description=query_url)
-        grid_jobs_html = render_template(**_data).replace("</source>", "")
-        with open(P_save, "w", encoding="utf-8") as f:
-            f.write(grid_jobs_html)
-        return P_save
-
-    driver = init_driver(headless=False, proxy=proxy)
-    driver.maximize_window()
-    driver.get(query_url)
-
-    def querySelector(selectors, elem=driver):
-        return elem.find_element(By.CSS_SELECTOR, selectors)
-    def querySelectorAll(selectors, elem=driver):
-        return elem.find_elements(By.CSS_SELECTOR, selectors)
-    def children(elem):
-        return elem.find_elements(By.XPATH, "./*")
-    q = querySelector
-    Q = querySelectorAll
-    def click_close():
-        x_button = q('button:has([d*="M6 18"])')
-        ActionChains(driver).move_to_element(x_button).click().perform()
-    def click_job(job):
-        ActionChains(driver).move_to_element(job).click().perform()
-    def extract_job():
-        driver.wait_for_element('.grid')
-        next_data_dict = json.loads(q('#__NEXT_DATA__').get_attribute("textContent"))
-        return next_data_dict
-
-    time.sleep(2)
-    # scroll_bottom(driver)
-
-    try:
-        grid = driver.wait_for_element(GRID := ".grid")
-        grid.children = partial(children, grid)
-        # grid_jobs_outer_html = grid.get_attribute("outerHTML")
-    # except TimeoutException:
-    except Exception:
-        log(P_save).warning(f"Could not save {P_save}...")
-        grid_jobs_outer_html = ""
-        input("Press ENTER to continue...")
-
-    N_initial = len(grid.children())
-    log(P_save).info(f"(N_initial={N_initial})...")
-
-    # ruff: noqa
-    cards = querySelectorAll('.grid > div')
-    card = cards[0]
-    card_btns_list = Q(BTNS := "button[class*='rounded-full bg-gray']", card)
-    job = q(JOB := "[class*='340px']", card)
-    hover = q(HOVER := "[class*='340px'] + div", card)
-
-    # ActionChains(driver).move_to_element(hover).perform()
-    click_job(job)
-    # next_data_job = extract_job()
-    next_data_dict = extract_job()
-    len(next_data_dict['props']['pageProps']['ssrHits'])
-    len(extract_job()['props']['pageProps']['ssrHits'])
-    next_data_dict['props']['pageProps']['ssrHits'][0]
-
-    driver.refresh()
-    extract_job()['props']['pageProps']['ssrHits'][0]
-
-    pages = Q("[class~='gap-0.5'] > a")
-    len(pages)
-    pages[0].get_attribute('href') == pages[1].get_attribute('href')
-    driver.refresh()
-    extract_job()['props']['pageProps']['ssrHits'][0]
-
-def load_query_url(path: Path | str) -> str:
-    path = Path(path)
-    if path.suffix == ".json":
-        with open(path) as f:
-            query_str = f.read()
-    else:
-        with open(path) as f:
-            return f.read()
-    _query_stripped = re.sub(r"\s*", "", query_str)
-    _query_parsed = urllib.parse.quote(_query_stripped)
-    query_url = f"https://hiring.cafe/?searchState={_query_parsed}".replace("%2B", "+")
-    return query_url
-
-
-def parse_query_url(query_url: str) -> dict:
-    import json
-
-    _query_parsed = query_url.removeprefix("https://hiring.cafe/?searchState=")
-    _query_stripped: str = urllib.parse.unquote(_query_parsed)
-    query_dict: dict = json.loads(_query_stripped)
-    return query_dict
-
-
-def scroll_bottom(driver, scroll_pause_time=SCROLL_PAUSE_TIME, wait_time=WAIT_TIME):
-    """Selenium driver scroll to bottom"""
-    NUM_RETRIES = int(wait_time / scroll_pause_time)
-
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    while True:
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(scroll_pause_time)
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            continue_scroll = False
-            for _ in range(NUM_RETRIES):
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(scroll_pause_time)
-                new_height = driver.execute_script("return document.body.scrollHeight")
-                if new_height != last_height:
-                    continue_scroll = True
-                    break
-            if not continue_scroll:
-                # print('Reached bottom of page...')
-                break
-        last_height = new_height
-
-
-def extract_job_description(root, to_markdown=True) -> str:
-    _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
-    next_data_dict = json.loads(_next_data.text_content())
-    next_data_job = next_data_dict["props"]["pageProps"]["job"]
-    data_job_description = next_data_job["job_information"]["description"]
-    if to_markdown:
-        data_job_description = md(data_job_description, heading_style="ATX")
-    return (
-        data_job_description.replace("\xa0", " ")
-        .replace("\u200b", " ")
-        .replace("\u202f", " ")
-        .replace("’", "'")
-    )
-
-
-def extract_job_info(root) -> dict:
-    _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
-    next_data_dict = json.loads(_next_data.text_content())
-    next_data_job = next_data_dict["props"]["pageProps"]["job"]
-    # _next_data_job_description = next_data_job['job_information']['description']
-    # data_job_description = md(_next_data_job_description, heading_style='ATX')
-    return next_data_job
+        _headers["proxy"] = {
+            "http": PROXY,
+            "https": PROXY,
+        }
+    response = requests.get(url, headers=_headers)
+    html_string = response.content.decode()
+    return html_string
 
 
 @cache
-def selenium_get(url, wait_time=2, proxy=False, driver=None):
-    close_driver = False
-    if driver is None:
-        close_driver = True
-        driver = init_driver(proxy=proxy, headless=False)
-    # wait = WebDriverWait(driver, 2)
-    driver.get(url)
-    # scroll_bottom(driver, wait_time=1)
-    scroll_bottom(driver, wait_time=wait_time)
-    try:
-        # wait.until(EC.visibility_of_element_located((By.XPATH, ".//article")))
-        driver.wait_for_element(".//article")
-    except Exception:
-        pass
-    # body = wait.until(EC.visibility_of_element_located((By.XPATH, "/body")))
-    # outerHTML = body.get_attribute("outerHTML")
-    html_source = driver.page_source
-    if close_driver:
-        driver.close()
-    return html_source
+def request_get(url, proxy=False):
+    _user_agent = UserAgent().get_random_cycled()
+    # _user_agent = USER_AGENT_106
+    _headers = {
+        "User-Agent": _user_agent,
+        "Referer": "https://hiring.cafe/",
+        "Origin": "https://hiring.cafe",
+        "Sec-Fetch-Dest": "empty",
+        # 'proxy': {
+        #     'http': PROXY,
+        #     'https': PROXY,
+        # }
+    }
+    if proxy:
+        ii = random.randint(1, 44745)
+        PROXY = f"byfdawqz-US-{ii}:fhx888ooginw@p.webshare.io:80"
+        _headers["proxy"] = {
+            "http": PROXY,
+            "https": PROXY,
+        }
+    response = request.get(url, headers=_headers)
+    response.raise_for_status()
+    html_string = response.content.decode()
+    return html_string
+
+def sleep(start=1, end=3):
+    time.sleep(random.uniform(1,3))
 
 
-def render_template(**kwargs):
-    output_html = _template().render(**kwargs)
-    return output_html
-
-
-@cache
-def _template():
-    from jinja2 import Environment, FileSystemLoader
-
-    env = Environment(loader=FileSystemLoader(P_DATA / "external"))
-    JINJA_TEMPLATE = "template.html"
-    template = env.get_template(JINJA_TEMPLATE)
-    return template
-
-
-@cache
-def log(P_query: Path) -> logging.Logger:
-    _filename = P_query.parent / f"{P_query.stem}.log"
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-    file_handler = logging.FileHandler(filename=_filename)
-    file_handler.setFormatter(logging.Formatter(FORMAT))
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter(FORMAT))
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-    return logger
 
 
 if __name__ == "__main__":
-    P_query = P_QUERY / "DS_NorCal.txt"
-    ## from job_search import *
-    ## (path_query:=P_query, overwrite:=False, bare:=False, proxy:=False)
-    P_save = main0(P_query, overwrite=False)
-    # P_save = main0(P_query, overwrite=False, bare=True)  # Path('data/2025-10-11/DS.html')
-    # P_save = P_DATA / 'processed/2026-04-13/DS_NorCal' / 'DS_NorCal.html'
-    main1(P_save, proxy=True)
+    from tqdm import tqdm
+
+    ds_job_titles = load_ds_job_titles()
+
+    jobs_json_list = [P_interim_date / f'jobs/{job_title}/page.json.gz'
+                        for job_title in ds_job_titles]
+    _list = [path for path in jobs_json_list if not path.exists()]
+    for job_title in tqdm(ds_job_titles):
+        P_jobs_json = P_interim_date / f'jobs/{job_title}/page.json.gz'
+        if P_jobs_json.exists():
+            continue
+
+        jobs_dict = load_jobs(job_title, verbose=False)
+        sleep(0.5, 1.5)

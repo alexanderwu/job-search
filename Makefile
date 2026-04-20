@@ -61,6 +61,9 @@ docs-serve:
 migrate: ## migrate
 	@$(JOB_MIGRATE)
 
+scrape: ## scrape
+	@$(PY_312) job_search/scrape.py
+
 dataset: ## dataset
 	@$(PY_312) job_search/dataset.py
 

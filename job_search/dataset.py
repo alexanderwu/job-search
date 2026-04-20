@@ -525,7 +525,7 @@ def load_jdf(P_save: Path | str = P_STEM) -> pd.DataFrame:
 def _feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     def load_cities() -> pd.DataFrame:
         SILICON_VALLEY = "Silicon Valley"
-        cities = pd.read_csv(P_DATA / "raw/cities.csv")[SILICON_VALLEY]
+        cities = pd.read_csv(P_DATA / "external/cities.csv")[SILICON_VALLEY]
         bay_cities = cities[~cities.str.startswith("#")].reset_index(drop=True)
         return bay_cities
 
