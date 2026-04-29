@@ -6,10 +6,12 @@
 PROJECT_NAME = job_search
 PYTHON_VERSION = 3.12
 PYTHON_INTERPRETER = python
-# PY_312 = ~/miniconda3/envs/py312/python
-PY_312 = C:\Users\Alex\miniconda3\envs\py312\python.exe
-PY_SCRIPTS = C:\Users\Alex\miniconda3\envs\py312\Scripts
-JOB_MIGRATE = C:\Users\Alex\miniconda3\envs\py312\Scripts\job-migrate.exe
+PY_312 = ~/miniconda3/envs/py312/bin/python
+PY_SCRIPTS = ~/miniconda3/envs/py312/Scripts
+# JOB_MIGRATE = ~/miniconda3/envs/py312/Scripts/job-migrate.exe
+# PY_312 = C:\Users\Alex\miniconda3\envs\py312\python.exe
+# PY_SCRIPTS = C:\Users\Alex\miniconda3\envs\py312\Scripts
+# JOB_MIGRATE = C:\Users\Alex\miniconda3\envs\py312\Scripts\job-migrate.exe
 
 
 #################################################################################
@@ -59,7 +61,7 @@ docs-serve:
 	cd docs && mkdocs serve
 
 migrate: ## migrate
-	@$(JOB_MIGRATE)
+	@$(PY_312) job_search/migrate.py
 
 scrape: ## scrape
 	@$(PY_312) job_search/scrape.py
