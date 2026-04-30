@@ -424,7 +424,7 @@ if __name__ == "__main__":
     LOAD_SITEMAPS = False
     LOAD_TITLES = False
     LOAD_LOCATIONS = False
-    LOAD_COMPANIES = False
+    LOAD_COMPANIES = True
 
     if LOAD_SITEMAPS:
         load_sitemap(SITEMAP_COMPANIES)
@@ -472,7 +472,8 @@ if __name__ == "__main__":
     ################################################################################
     # companies_df = load_sitemap(SITEMAP_COMPANIES)
     # companies = companies_df['sitemap'].str.removeprefix('company/')
-    boards_list = load_boards(HEALTH, verbose=False)
+    # boards_list = load_boards(HEALTH, verbose=True)
+    boards_list = load_boards(DS_SF, verbose=True)
 
     if LOAD_COMPANIES:
         hits_list = chain.from_iterable([board['pageProps']['hits'] for board in boards_list])

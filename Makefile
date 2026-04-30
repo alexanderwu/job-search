@@ -1,4 +1,4 @@
-.PHONY: upload download sync clean lint format test docs docs-serve dataset serve create-database postgres
+.PHONY: upload download sync clean lint format test docs docs-serve streamlit migrate scrape dataset serve create-database postgres
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
@@ -6,10 +6,10 @@
 PROJECT_NAME = job_search
 PYTHON_VERSION = 3.12
 PYTHON_INTERPRETER = python
-PY_312 = ~/miniconda3/envs/py312/bin/python
+# PY_312 = ~/miniconda3/envs/py312/binpython
 PY_SCRIPTS = ~/miniconda3/envs/py312/Scripts
 # JOB_MIGRATE = ~/miniconda3/envs/py312/Scripts/job-migrate.exe
-# PY_312 = C:\Users\Alex\miniconda3\envs\py312\python.exe
+PY_312 = C:\Users\Alex\miniconda3\envs\py312\python.exe
 # PY_SCRIPTS = C:\Users\Alex\miniconda3\envs\py312\Scripts
 # JOB_MIGRATE = C:\Users\Alex\miniconda3\envs\py312\Scripts\job-migrate.exe
 
@@ -60,8 +60,11 @@ docs:
 docs-serve:
 	cd docs && mkdocs serve
 
+streamlit: ## streamlit
+	@$(PY_312) -m streamlit run streamlit/streamlit_app.py
+
 migrate: ## migrate
-	@$(PY_312) job_search/migrate.py
+	@$(PY_312) job_search/migrator.py
 
 scrape: ## scrape
 	@$(PY_312) job_search/scrape.py

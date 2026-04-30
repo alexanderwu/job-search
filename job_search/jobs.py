@@ -26,34 +26,41 @@ MASK_COLS = ['company_name', 'title', '_hash', 'requirements_summary', 'technica
              'formatted_workplace_location', 'company_tagline', '_md']
 
 
-@cache
+# @cache
 def load_jobs(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
-    if isinstance(db, str):
-        db = P_ROOT / db
-    P_parquet = P_CACHE / f'{db.stem}.parquet'
-    if overwrite or not P_parquet.exists():
-        with duckdb.connect(db) as con:
-            jobs_df = con.table("jobs").df()
+    jobs_df = db
+    if not isinstance(db, pd.DataFrame):
+        if db is None:
+            db = 'jobs.duckdb'
+        if isinstance(db, str):
+            if not db.endswith('.duckdb') and not db.endswith('.db'):
+                db = f'{db}.duckdb'
+            db = P_ROOT / db
+        P_parquet = P_CACHE / f'{db.stem}.parquet'
+        if overwrite or not P_parquet.exists():
+            with duckdb.connect(db) as con:
+                jobs_df = con.table("jobs").df()
 
-        jobs_df['_md'] = jobs_df['description'].map(md)
-        jobs_df['_url'] = VIEW_JOB_HTTPS + jobs_df['requisition_id']
-        jobs_df['_hash'] = jobs_df['requisition_id']
+            jobs_df['_md'] = jobs_df['description'].map(md)
+            jobs_df['_url'] = VIEW_JOB_HTTPS + jobs_df['requisition_id']
+            jobs_df['_hash'] = jobs_df['requisition_id']
 
-        P_parquet.parent.mkdir(exist_ok=True)
-        jobs_df.to_parquet(P_parquet)
-        print('Saving:', P_parquet)
-    else:
-        jobs_df = pd.read_parquet(P_parquet)
+            P_parquet.parent.mkdir(exist_ok=True)
+            jobs_df.to_parquet(P_parquet)
+            print('Saving:', P_parquet)
+        else:
+            jobs_df = pd.read_parquet(P_parquet)
 
     if clean:
         jobs_df = jobs_df.dropna(how='all')
         # jobs_df['estimated_publish_date'] = jobs_df['estimated_publish_date'].dt.tz_localize('UTC')
         sf_remote_mask = jobs_df['formatted_workplace_location'].str.contains('San Francisco|San Jose', case=False)
         jobs_df['norcal'] = _norcal_mask(jobs_df) | sf_remote_mask
-        jobs_df['health'] = cmask(['health', 'medical', 'biotech'], col='company_activities')
+        jobs_df['health'] = cmask(['health', 'medical', 'biotech'], col='company_activities', jobs_df=jobs_df)
         jobs_df['jan'] = jobs_df['estimated_publish_date'] >= "2026-01-01"
-        jobs_df['feb'] = jobs_df['estimated_publish_date'] >= "2026-02-01"
+        # jobs_df['feb'] = jobs_df['estimated_publish_date'] >= "2026-02-01"
         jobs_df['mar'] = jobs_df['estimated_publish_date'] >= "2026-03-01"
+        jobs_df['apr'] = jobs_df['estimated_publish_date'] >= "2026-04-01"
         jobs_df['position'] = (
             (jobs_df["company_name"].fillna('') + " - " + jobs_df["title"])
             .str.replace(r"[/|:\\*?]", "_", regex=True)
@@ -89,14 +96,6 @@ def load_jobs2026(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame
     jobs2026['estimated_publish_date'] = jobs2026['estimated_publish_date'].dt.tz_localize('UTC')
     return jobs2026
 
-@cache
-def load_jobs_feb(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
-    jobs_df = load_jobs(db, clean, overwrite)
-    jobs_feb = (jobs_df.query('estimated_publish_date >= "2026-02-01"')
-        .sort_values('estimated_publish_date', ascending=False)
-        .reset_index(drop=True))[COLS]
-    jobs_feb['estimated_publish_date'] = jobs_feb['estimated_publish_date'].dt.tz_localize('UTC')
-    return jobs_feb
 
 @cache
 def load_jdf_dict(**kwargs) -> dict[str, pd.DataFrame]:
@@ -146,8 +145,7 @@ def load_jdf_parquet(query='ALL', overwrite=False, **kwargs):
 HASH = "lt3eeomecenp5t50"
 
 def display_text_mask(keywords, job_ii=1, job_df=None, llm=False):
-    if job_df is None:
-        job_df = load_jobs()
+    job_df = load_jobs(job_df)
     _mask = text_mask(keywords, job_df=job_df)
     ii = job_ii - 1
     display(perc(_mask))
@@ -161,12 +159,11 @@ def display_text_mask(keywords, job_ii=1, job_df=None, llm=False):
         print(f'No match for: {keywords}')
 
 def disp(jobs_df=None, mask=None, ii=0, llm=False, **kwargs):
-    if jobs_df is None:
-        jobs_df = load_jobs()
+    jobs_df = load_jobs(jobs_df)
     if mask is None:
         mask = pd.Series(True, index=jobs_df.index)
     if not isinstance(mask, pd.Series):
-        mask = cmask(mask, **kwargs)
+        mask = cmask(mask, jobs_df=jobs_df, **kwargs)
 
     if len(jobs_df) == 0 or mask.sum() == 0:
         return print('No match')
@@ -184,9 +181,9 @@ def disp(jobs_df=None, mask=None, ii=0, llm=False, **kwargs):
     else:
         print('No match')
 
-def display_cmask(keywords, job_ii=1, llm=False):
-    job_df = load_jobs()
-    _mask = cmask(keywords)
+def display_cmask(keywords, job_ii=1, llm=False, jobs_df=None):
+    job_df = load_jobs(jobs_df)
+    _mask = cmask(keywords, jobs_df=jobs_df)
     if len(job_df) == 0:
         return print('No match')
     ii = (job_ii - 1) % job_df
@@ -204,16 +201,15 @@ def display_ai(_hash=HASH, job_df=None):
     return display_job(_hash=HASH, job_df=None, llm=True)
 
 def display_job(_hash=HASH, job_df=None, llm=False):
-    if job_df is None:
-        job_df = load_jobs()
-    job_md = hash2md(_hash)
+    job_df = load_jobs(job_df)
+    job_md = hash2md(_hash, job_df)
     if llm:
         llm_extract(job_md, verbose=True)
     display(job_df.query('_hash == @_hash')[COLS].drop(columns=['_md', 'description']).T.style)
-    display_hash(_hash)
+    display_hash(_hash, job_df)
 
-def display_hash(_hash=HASH, verbose=True):
-    jobs_df = load_jobs()
+def display_hash(_hash=HASH, job_df=None, verbose=True):
+    jobs_df = load_jobs(job_df)
     _row = jobs_df.query(f'requisition_id == "{_hash}"')
     _md = _row['_md'].iloc[0]
     _technical_tools = _row['technical_tools'].iloc[0]
@@ -229,8 +225,8 @@ def _display_md(_md, verbose=True):
         return display(HTML(_html_centered))
     print(_md)
 
-def hash2md(hash, verbose=False):
-    _jobs_df = load_jobs()
+def hash2md(hash, jobs_df=None, verbose=False):
+    _jobs_df = load_jobs(jobs_df)
     _md = _jobs_df.query('requisition_id==@hash')['_md'].iloc[0]
     if verbose:
         return print(_md)
@@ -238,8 +234,7 @@ def hash2md(hash, verbose=False):
 
 # @cache
 def _load_text(job_df=None) -> pd.Series:
-    if job_df is None:
-        job_df = load_jobs()
+    job_df = load_jobs(job_df)
     pd_series = (job_df['company_name'].fillna('') + ' - ' + job_df['title'] + '.' + job_df['_hash'] + '\n\n'
         + job_df['requirements_summary'] + '\n\n'
         + job_df['technical_tools'].str.join('; ') + '\n'
@@ -252,15 +247,15 @@ def _load_text(job_df=None) -> pd.Series:
         + job_df['_md'])
     return pd_series
 
-def text_mask(phrase, job_df=None, regex=False, verbose=False, **kwargs):
+def text_mask(phrase, jobs_df=None, regex=False, verbose=False, **kwargs):
     """General search with regex"""
-    pd_series = _load_text(job_df)
-    return rmask(phrase, pd_series, regex, verbose, **kwargs)
+    pd_series = _load_text(jobs_df)
+    return rmask(phrase, pd_series, regex, verbose, jobs_df, **kwargs)
 
-def rmask(phrase, pd_series=None, regex=False, verbose=False, **kwargs):
+def rmask(phrase, pd_series=None, regex=False, verbose=False, jobs_df=None, **kwargs):
     """Regex search"""
     if pd_series is None:
-        pd_series = load_jobs()['_md']
+        pd_series = load_jobs(jobs_df)['_md']
     lower = phrase == phrase.lower()
     if lower:
         phrase = phrase.lower()
@@ -271,10 +266,10 @@ def rmask(phrase, pd_series=None, regex=False, verbose=False, **kwargs):
         return _mask.pipe(perc, **kwargs)
     return _mask
 
-def tmask(phrase, pd_series=None, regex=False, verbose=False, **kwargs):
+def tmask(phrase, pd_series=None, regex=False, verbose=False, jobs_df=None, **kwargs):
     """Mask on technical tools"""
     if pd_series is None:
-        pd_series = load_jobs()['technical_tools']
+        pd_series = load_jobs(jobs_df)['technical_tools']
     lower = phrase == phrase.lower()
     if lower:
         phrase = phrase.lower()
@@ -284,9 +279,9 @@ def tmask(phrase, pd_series=None, regex=False, verbose=False, **kwargs):
         return _mask.pipe(perc, **kwargs)
     return _mask
 
-def hmask(phrase, pd_df=None, regex=False):
+def hmask(phrase, pd_df=None, regex=False, jobs_df=None):
     if pd_df is None:
-        pd_df = load_jobs()
+        pd_df = load_jobs(jobs_df)
     _mask = text_mask(phrase, job_df=pd_df, regex=False)
     hash_set = set(pd_df[_mask]['_hash'])
     return hash_set
@@ -327,11 +322,11 @@ def perc(pd_series: pd.Series, caption='', display_false=False):
 # COL = 'company_activities'
 COL = '_md'
 
-@cache
-def _cmask(keywords, contains=True, case=None, col=COL):
+# @cache
+def _cmask(keywords, contains=True, case=None, col=COL, jobs_df=None):
     if not isinstance(keywords, (list, tuple)):
         keywords = [keywords]
-    jobs_df = load_jobs(clean=False)
+    jobs_df = load_jobs(jobs_df, clean=False)
 
     regex = r'\b' + r"|\b".join(keywords)
     if case is None:
@@ -350,31 +345,31 @@ def _cmask(keywords, contains=True, case=None, col=COL):
         mask = jobs_df_col.apply(_set_match, case=case)
     return mask
 
-def _chashes(keywords, contains=True, case=False, col=COL):
-    mask = _cmask(keywords, contains, case, col)
-    jobs_df = load_jobs(clean=False)
+def _chashes(keywords, contains=True, case=False, col=COL, jobs_df=None):
+    jobs_df = load_jobs(jobs_df, clean=False)
+    mask = _cmask(keywords, contains, case, col, jobs_df)
     hashes = jobs_df[mask]['_hash'].pipe(set)
     return hashes
 
-def cmask(keywords, contains=True, case=False, col=MASK_COLS):
+def cmask(keywords, contains=True, case=False, col=MASK_COLS, jobs_df=None):
     if isinstance(col, (list, tuple)):
-        masks_list = [cmask(keywords, contains, case, c) for c in col]
+        masks_list = [cmask(keywords, contains, case, c, jobs_df) for c in col]
         mask = reduce(lambda x, y: x|y, masks_list)
         return mask
     if not isinstance(keywords, (list, tuple)):
         keywords = [keywords]
     keywords = tuple(keywords)
-    mask = _cmask(keywords, contains, case, col)
+    mask = _cmask(keywords, contains, case, col, jobs_df)
     return mask
 
 def chashes(keywords, contains=True, case=False, jobs_df=None, col=MASK_COLS):
     if not isinstance(keywords, (list, tuple)):
         keywords = [keywords]
     keywords = tuple(keywords)
-    hashes = _chashes(keywords, contains, case, col)
+    hashes = _chashes(keywords, contains, case, col, jobs_df)
 
     if jobs_df is not None:
-        jobs_df = load_jobs()
+        jobs_df = load_jobs(jobs_df)
         hashes = hashes & set(jobs_df['_hash'])
     return hashes
 
@@ -383,25 +378,33 @@ if __name__ == "__main__":
     # ruff: noqa: F401
     from job_search.config import P_CACHE, P_ROOT
     from job_search.jobs import load_jobs
+    from job_search.scrape import DS_SF, HEALTH
 
-    assert (P_astro := P_ROOT.parent / 'job-astro' / 'src/data').exists()
-    COLS = [
-        'requisition_id',
-        'title',
-        'estimated_publish_date',
-        'formatted_workplace_location',
-        'yearly_min_compensation',
-        'yearly_max_compensation',
-        'listed_compensation_frequency',
-        'workplace_type',
-        'commitment',
-        'requirements_summary',
-        'min_industry_role_yoe',
-        'company_name',
-        'company_tagline',
-        'technical_tools',
-    ]
-    jobs_df = load_jobs(overwrite=True)
-    (jobs_df.query('mar')[COLS]
-        .rename(columns={'requisition_id': 'id', 'company_tagline': 'tagline'})
-        .to_json(P_astro / 'jobs_mar.json', orient='records'))
+    SAVE_ASTRO = False
+
+
+    jobs_df = load_jobs('jobs.duckdb', overwrite=True)
+    # jobs_df = load_jobs(f'{HEALTH}.duckdb', overwrite=True)
+    # jobs_df = load_jobs(f'{DS_SF}.duckdb', overwrite=True)
+
+    if SAVE_ASTRO:
+        assert (P_astro := P_ROOT.parent / 'job-astro' / 'src/data').exists()
+        COLS = [
+            'requisition_id',
+            'title',
+            'estimated_publish_date',
+            'formatted_workplace_location',
+            'yearly_min_compensation',
+            'yearly_max_compensation',
+            'listed_compensation_frequency',
+            'workplace_type',
+            'commitment',
+            'requirements_summary',
+            'min_industry_role_yoe',
+            'company_name',
+            'company_tagline',
+            'technical_tools',
+        ]
+        (jobs_df.query('mar')[COLS]
+            .rename(columns={'requisition_id': 'id', 'company_tagline': 'tagline'})
+            .to_json(P_astro / 'jobs_mar.json', orient='records'))
