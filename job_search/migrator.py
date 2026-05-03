@@ -599,11 +599,18 @@ def main():
     """Main migration script."""
     import sys
 
-    from job_search.scrape import DS_SF, P_interim_date
+    from job_search.scrape import DS_SF, HEALTH, P_interim_date
 
     # Parse arguments
-    db_path = sys.argv[1] if len(sys.argv) > 1 else f"{DS_SF}.duckdb"
-    data_dir = sys.argv[2] if len(sys.argv) > 2 else P_interim_date / DS_SF
+    db_path = sys.argv[1] if len(sys.argv) > 1 else DS_SF
+    if db_path == "DS_SF":
+        db_path = DS_SF
+    if db_path == "HEALTH":
+        db_path = HEALTH
+    # data_dir = sys.argv[2] if len(sys.argv) > 2 else P_interim_date / DS_SF
+    data_dir = sys.argv[2] if len(sys.argv) > 2 else P_interim_date / db_path
+    if not db_path.endswith('.duckdb'):
+        db_path = f"{db_path}.duckdb"
 
     print(f"Starting migration to {db_path}")
     print(f"Reading from {data_dir}")

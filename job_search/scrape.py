@@ -23,7 +23,10 @@ USER_AGENT_106 = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like 
 HIRING_CAFE = "https://hiring.cafe"
 HIRING_CAFE_ = "https://hiring.cafe/"
 # _NEXT_PREFIX = "_next/data/KHL6pwrRx0qXfmkGIviUb"
-_NEXT_PREFIX = "_next/data/oRfiWtg_9xPWJQJPky-_H/"
+# _NEXT_PREFIX = "_next/data/oRfiWtg_9xPWJQJPky-_H/"
+# _NEXT_PREFIX = "_next/data/HL5jWvetFxVKM-S9HY3Et"
+# _NEXT_PREFIX = "_next/data/hfnlOHQswTqpgwl1YXesc"
+_NEXT_PREFIX = "_next/data/Nen3D_K_gniIeb-kIa9UW"
 _now = now(time=False, days=0)
 # _now = '2026-04-20'
 P_raw_date = P_RAW / _now.replace('-', '/')
@@ -209,22 +212,12 @@ def load_jobs(job_title='data-scientist', overwrite=False, verbose=True, proxy=F
     P_jobs_json = P_interim_date / f'jobs/{job_title}/page{page}.json.gz'
     if P_jobs_json.exists() and not overwrite:
         jobs_dict = read_data(P_jobs_json, verbose=verbose)
-        # if verbose:
-        #     print('Reading:', P_jobs_json)
-        # with gzip.open(P_jobs_json, "rt", encoding='utf-8') as f:
-        #     jobs_dict = json.load(f)
     else:
         # _suffix = f'?jobTitle={job_title}&location=united-states'
         job_title_json_url = f'{HIRING_CAFE_}{_NEXT_PREFIX}/jobs/{job_title}/locations/united-states.json?page={page}'
         job_title_json = request_get(job_title_json_url, proxy=proxy)
         jobs_dict = json.loads(job_title_json)
         write_data(P_jobs_json, jobs_dict, verbose=verbose)
-        # if verbose:
-        #     print('Saving:', P_jobs_json)
-        # P_jobs_json.parent.mkdir(parents=True, exist_ok=True)
-        # with gzip.open(P_jobs_json, "wt", encoding="utf-8") as f:
-        #     jobs_dict = json.loads(job_title_json)
-        #     json.dump(jobs_dict, f)
 
     try:
         if not jobs_dict['pageProps']['ssrIsLastPage']:
@@ -327,22 +320,16 @@ def load_board(board=HEALTH, overwrite=False, verbose=True, page=0):
     P_jobs_json = P_interim_date / f'{board}/page{page}.json.gz'
     if P_jobs_json.exists() and not overwrite:
         jobs_dict = read_data(P_jobs_json, verbose=True)
-        # if verbose:
-        #     print('Reading:', P_jobs_json)
-        # with gzip.open(P_jobs_json, "rt", encoding='utf-8') as f:
-        #     jobs_dict = json.load(f)
     else:
         board_url = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{board}.json'
         url = f'{board_url}?page={page}'
         job_title_json = requests_get(url)
-        jobs_dict = json.loads(job_title_json)
+        try:
+            jobs_dict = json.loads(job_title_json)
+        except json.decoder.JSONDecodeError:
+            print(f'{HIRING_CAFE}/b/{board}')
+            return {}
         write_data(P_jobs_json, jobs_dict, verbose=verbose)
-        # if verbose:
-        #     print('Saving:', P_jobs_json)
-        # P_jobs_json.parent.mkdir(parents=True, exist_ok=True)
-        # with gzip.open(P_jobs_json, "wt", encoding="utf-8") as f:
-        #     jobs_dict = json.loads(job_title_json)
-        #     json.dump(jobs_dict, f)
 
     # if not jobs_dict['pageProps']['isLastPage']:
     #     load_ds_ca(board, verbose=verbose, page=page+1)
@@ -421,7 +408,7 @@ if __name__ == "__main__":
 
     from tqdm import tqdm
 
-    LOAD_SITEMAPS = False
+    LOAD_SITEMAPS = True
     LOAD_TITLES = False
     LOAD_LOCATIONS = False
     LOAD_COMPANIES = True
@@ -472,8 +459,10 @@ if __name__ == "__main__":
     ################################################################################
     # companies_df = load_sitemap(SITEMAP_COMPANIES)
     # companies = companies_df['sitemap'].str.removeprefix('company/')
-    # boards_list = load_boards(HEALTH, verbose=True)
-    boards_list = load_boards(DS_SF, verbose=True)
+
+    health_boards_list = load_boards(HEALTH, verbose=True)
+    ds_sf_boards_list = load_boards(DS_SF, verbose=True)
+    boards_list = [*health_boards_list, *ds_sf_boards_list]
 
     if LOAD_COMPANIES:
         hits_list = chain.from_iterable([board['pageProps']['hits'] for board in boards_list])

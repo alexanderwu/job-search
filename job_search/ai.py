@@ -17,7 +17,7 @@ def load_resume(verbose=False):
 
 def load_md(_md, verbose=False):
     if isinstance(_md, Path):
-        with open(_md) as f:
+        with open(_md, encoding='utf-8') as f:
             _md = f.read()
     if verbose:
         display(Markdown(str(_md)))

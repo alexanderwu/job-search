@@ -233,7 +233,7 @@ def _save_dicts(df, P_save=None, proxy=False):
         P_url = P_URLS / f"{identifier}.html"
         P_md = P_JOBS / f"{identifier}.md"
         P_dict = P_DICT / f"{identifier}.html.pkl"
-        pbar.set_description(f"{P_url}")
+        pbar.set_description(f"{P_url.name}")
         # if P_md.exists():
         if P_dict.exists():
             continue
