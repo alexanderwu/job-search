@@ -501,11 +501,11 @@ class JobMigrator:
                 updated_at = now()
         """, job)
 
-    def process_file(self, file_path: Path) -> int:
+    def process_file(self, file_path: Path, overwrite=True) -> int:
         """Process a single pickle file."""
         try:
             # Check if already processed
-            if self._is_file_processed(file_path):
+            if self._is_file_processed(file_path) and not overwrite:
                 return 0
 
             # Load json.gz or pickle file
@@ -597,38 +597,58 @@ class JobMigrator:
 
 def main():
     """Main migration script."""
-    import sys
+    # ruff: noqa: F401
+    # import sys
 
-    from job_search.scrape import DS_SF, HEALTH, P_interim_date
+    from job_search.scrape import DA_HEALTH, DA_SF, DS_SF, HEALTH, P_interim_date
 
-    # Parse arguments
-    db_path = sys.argv[1] if len(sys.argv) > 1 else DS_SF
-    if db_path == "DS_SF":
-        db_path = DS_SF
-    if db_path == "HEALTH":
-        db_path = HEALTH
-    # data_dir = sys.argv[2] if len(sys.argv) > 2 else P_interim_date / DS_SF
-    data_dir = sys.argv[2] if len(sys.argv) > 2 else P_interim_date / db_path
-    if not db_path.endswith('.duckdb'):
-        db_path = f"{db_path}.duckdb"
+    # ## Parse arguments
+    # db_path = sys.argv[1] if len(sys.argv) > 1 else DS_SF
+    # if db_path == "DS_SF":
+    #     db_path = DS_SF
+    # if db_path == "HEALTH":
+    #     db_path = HEALTH
+    # # data_dir = sys.argv[2] if len(sys.argv) > 2 else P_interim_date / DS_SF
+    # data_dir = sys.argv[2] if len(sys.argv) > 2 else P_interim_date / db_path
+    # if not db_path.endswith('.duckdb'):
+    #     db_path = f"{db_path}.duckdb"
 
-    print(f"Starting migration to {db_path}")
-    print(f"Reading from {data_dir}")
+    ALL_DB = 'ALL.duckdb'
+    DB_PATHS = [DA_HEALTH, DA_SF, DS_SF, HEALTH]
+    # DB_PATHS = ['jobs.duckdb']
+    for db_path in DB_PATHS:
+        data_dir = P_interim_date / db_path
+        if not db_path.endswith('.duckdb'):
+            db_path = f"{db_path}.duckdb"
 
-    migrator = JobMigrator(db_path=db_path, data_dir=data_dir)
+        db_path = ALL_DB#
+        print(f"Starting migration to {db_path}")
+        print(f"Reading from {data_dir}")
 
-    try:
-        # Run migration
-        _stats = migrator.migrate_all(skip_processed=True)
+        migrator = JobMigrator(db_path=db_path, data_dir=data_dir)
 
-        # Show final stats
-        db_stats = migrator.get_stats()
-        print("\nDatabase Statistics:")
-        for key, value in db_stats.items():
-            print(f"  {key}: {value}")
+        try:
+            # Run migration
+            _stats = migrator.migrate_all(skip_processed=True)
 
-    finally:
-        migrator.close()
+            # Show final stats
+            db_stats = migrator.get_stats()
+            print("\nDatabase Statistics:")
+            for key, value in db_stats.items():
+                print(f"  {key}: {value}")
+
+        finally:
+            migrator.close()
+
+        migrator = JobMigrator(db_path=ALL_DB, data_dir=data_dir)
+        try:
+            _stats = migrator.migrate_all(skip_processed=False)
+            db_stats = migrator.get_stats()
+            print("\nDatabase Statistics:")
+            for key, value in db_stats.items():
+                print(f"  {key}: {value}")
+        finally:
+            migrator.close()
 
 
 if __name__ == "__main__":

@@ -378,14 +378,17 @@ if __name__ == "__main__":
     # ruff: noqa: F401
     from job_search.config import P_CACHE, P_ROOT
     from job_search.jobs import load_jobs
-    from job_search.scrape import DS_SF, HEALTH
+    from job_search.scrape import DA_HEALTH, DA_SF, DS_SF, HEALTH
 
     SAVE_ASTRO = False
 
 
-    jobs_df = load_jobs('jobs.duckdb', overwrite=True)
+    # jobs_df = load_jobs('jobs.duckdb', overwrite=True)
+    jobs_df = load_jobs('ALL.duckdb', overwrite=True)
+    for board in [DA_HEALTH, DA_SF, DS_SF, HEALTH]:
+        load_jobs(f'{board}.duckdb', overwrite=True)
+
     # jobs_df = load_jobs(f'{HEALTH}.duckdb', overwrite=True)
-    # jobs_df = load_jobs(f'{DS_SF}.duckdb', overwrite=True)
 
     if SAVE_ASTRO:
         assert (P_astro := P_ROOT.parent / 'job-astro' / 'src/data').exists()

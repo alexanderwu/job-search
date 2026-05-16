@@ -60,11 +60,21 @@ docs:
 docs-serve:
 	cd docs && mkdocs serve
 
+stream: ## stream
+	code streamlit/streamlit_app.py
+
+
 streamlit: ## streamlit
 	@$(PY_312) -m streamlit run streamlit/streamlit_app.py
 
 migrate: ## migrate
-	@$(PY_312) job_search/migrator.py
+	@$(PY_312) job_search/migrator.py jobs data/cache/dicts
+
+ds_sf: ## ds_sf
+	@$(PY_312) job_search/migrator.py DS_SF
+
+health: ## health
+	@$(PY_312) job_search/migrator.py HEALTH
 
 scrape: ## scrape
 	@$(PY_312) job_search/scrape.py

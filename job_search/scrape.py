@@ -12,21 +12,20 @@ from IPython.display import Code
 from lxml import etree
 from lxml.etree import _Element as Element
 from lxml.etree import _ElementTree as ElementTree
+import lxml.html
 import pandas as pd
 import requests
 from tqdm import tqdm
 
 from job_search.config import P_INTERIM, P_RAW
+from job_search.dataset import init_driver
 from job_search.utils import now
 
 USER_AGENT_106 = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.37'
 HIRING_CAFE = "https://hiring.cafe"
 HIRING_CAFE_ = "https://hiring.cafe/"
 # _NEXT_PREFIX = "_next/data/KHL6pwrRx0qXfmkGIviUb"
-# _NEXT_PREFIX = "_next/data/oRfiWtg_9xPWJQJPky-_H/"
-# _NEXT_PREFIX = "_next/data/HL5jWvetFxVKM-S9HY3Et"
-# _NEXT_PREFIX = "_next/data/hfnlOHQswTqpgwl1YXesc"
-_NEXT_PREFIX = "_next/data/Nen3D_K_gniIeb-kIa9UW"
+_NEXT_PREFIX = "_next/data/PRlr0EYHY0knKhCjzqWrK"
 _now = now(time=False, days=0)
 # _now = '2026-04-20'
 P_raw_date = P_RAW / _now.replace('-', '/')
@@ -39,7 +38,9 @@ SITEMAP_JOB_TITLES = 'sitemap-job-titles-index'
 SITEMAP_LOCATIONS = 'sitemap-locations-index'
 
 DS_CA = 'ds-ca-2tzfqdib'
+DA_SF = 'da-sf-remote-tgl2fcys'
 DS_SF = 'ds-sf-remote-77r5vzr1'
+DA_HEALTH = 'da-healthcare-awiifu1z'
 HEALTH = 'healthcare-9ierbt6f'
 BOARD_URL = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{HEALTH}.json'
 # BOARD_URL = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{DS_CA}.json'
@@ -305,30 +306,51 @@ def load_company(company='komodohealth.com', overwrite=False, verbose=False) -> 
     return jobs_dict
 
 
-def load_boards(board=HEALTH, overwrite=False, verbose=True):
+def load_boards(board=HEALTH, overwrite=False, verbose=True, pages=100, driver=None):
     page = 0
-    jobs_dict_list = [jobs_dict := load_board(board, overwrite, verbose, page)]
-    while not jobs_dict['pageProps']['isLastPage']:
+    if pages is None:
+        pages = 1000
+
+    jobs_dict_list = [jobs_dict := load_board(board, overwrite, verbose, page, driver)]
+    while not jobs_dict.get('props', jobs_dict)['pageProps']['isLastPage'] and page < pages:
         page += 1
-        jobs_dict_list.append(jobs_dict := load_board(board, overwrite, verbose, page))
+        jobs_dict_list.append(jobs_dict := load_board(board, overwrite, verbose, page, driver))
     return jobs_dict_list
 
 
-def load_board(board=HEALTH, overwrite=False, verbose=True, page=0):
+def load_board(board=HEALTH, overwrite=False, verbose=True, page=0, driver=None):
     assert isinstance(page, int) and page >= 0
 
     P_jobs_json = P_interim_date / f'{board}/page{page}.json.gz'
+    # P_jobs_html = P_interim_date / f'{board}/page{page}.html'
     if P_jobs_json.exists() and not overwrite:
         jobs_dict = read_data(P_jobs_json, verbose=True)
     else:
-        board_url = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{board}.json'
-        url = f'{board_url}?page={page}'
+        board_json_url = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{board}.json'
+        url = f'{board_json_url}?page={page}'
         job_title_json = requests_get(url)
         try:
             jobs_dict = json.loads(job_title_json)
         except json.decoder.JSONDecodeError:
+            board_url = f'{HIRING_CAFE}/b/{board}?page={page}'
+            url_get_content = selenium_get(board_url, proxy=False, driver=driver)#
+            # with open(P_jobs_html, "w", encoding="utf-8") as f:
+            #     f.write(url_get_content)
+            root = lxml.html.fromstring(url_get_content)
+            _next_data_list = root.xpath("//script[@id='__NEXT_DATA__']")
+            if len(_next_data_list) == 0:
+                jobs_dict = {}
+            else:
+                _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
+                jobs_dict = json.loads(_next_data.text_content())
+                jobs_dict = jobs_dict.get('props', jobs_dict)
+        except Exception:
             print(f'{HIRING_CAFE}/b/{board}')
-            return {}
+            return None
+
+        if not jobs_dict:
+            print("ERROR")
+            return None
         write_data(P_jobs_json, jobs_dict, verbose=verbose)
 
     # if not jobs_dict['pageProps']['isLastPage']:
@@ -350,6 +372,52 @@ def requests_get(url, start=0.2, end=0.5):
     sleep(start, end)
     return html_string
 
+@cache
+def selenium_get(url, wait_time=2, proxy=False, driver=None):
+    close_driver = False
+    if driver is None:
+        close_driver = True
+        driver = init_driver(proxy=proxy, headless=False)
+    # wait = WebDriverWait(driver, 2)
+    driver.get(url)
+    # scroll_bottom(driver, wait_time=1)
+    try:
+        # wait.until(EC.visibility_of_element_located((By.XPATH, ".//article")))
+        driver.wait_for_element("#__NEXT_DATA__")
+    except Exception:
+        pass
+    scroll_bottom(driver, wait_time=wait_time)
+    time.sleep(random.uniform(0, 0.3))
+    # body = wait.until(EC.visibility_of_element_located((By.XPATH, "/body")))
+    # outerHTML = body.get_attribute("outerHTML")
+    html_source = driver.page_source
+    if close_driver:
+        driver.close()
+    return html_source
+
+
+def scroll_bottom(driver, scroll_pause_time=0.5, wait_time=3):
+    """Selenium driver scroll to bottom"""
+    NUM_RETRIES = int(wait_time / scroll_pause_time)
+
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(scroll_pause_time)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            continue_scroll = False
+            for _ in range(NUM_RETRIES):
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(scroll_pause_time)
+                new_height = driver.execute_script("return document.body.scrollHeight")
+                if new_height != last_height:
+                    continue_scroll = True
+                    break
+            if not continue_scroll:
+                # print('Reached bottom of page...')
+                break
+        last_height = new_height
 
 @cache
 def request_get(url, proxy=False):
@@ -408,10 +476,11 @@ if __name__ == "__main__":
 
     from tqdm import tqdm
 
-    LOAD_SITEMAPS = True
+    LOAD_SITEMAPS = False
     LOAD_TITLES = False
     LOAD_LOCATIONS = False
-    LOAD_COMPANIES = True
+    LOAD_COMPANIES = False
+    PAGES = 2
 
     if LOAD_SITEMAPS:
         load_sitemap(SITEMAP_COMPANIES)
@@ -460,11 +529,14 @@ if __name__ == "__main__":
     # companies_df = load_sitemap(SITEMAP_COMPANIES)
     # companies = companies_df['sitemap'].str.removeprefix('company/')
 
-    health_boards_list = load_boards(HEALTH, verbose=True)
-    ds_sf_boards_list = load_boards(DS_SF, verbose=True)
-    boards_list = [*health_boards_list, *ds_sf_boards_list]
+    driver = init_driver(headless=False)
+    health_boards_list = load_boards(HEALTH, verbose=True, pages=PAGES, driver=driver)
+    da_health_boards_list = load_boards(DA_HEALTH, verbose=True, pages=PAGES, driver=driver)
+    ds_sf_boards_list = load_boards(DS_SF, verbose=True, pages=PAGES, driver=driver)
+    da_sf_boards_list = load_boards(DA_SF, verbose=True, pages=PAGES, driver=driver)
 
     if LOAD_COMPANIES:
+        boards_list = [*health_boards_list, *da_health_boards_list, *ds_sf_boards_list, *da_sf_boards_list]
         hits_list = chain.from_iterable([board['pageProps']['hits'] for board in boards_list])
         homepage_uri_list = [hit.get('enriched_company_data', {}).get('homepage_uri', None) for hit in hits_list]
         companies = pd.Series(homepage_uri_list).drop_duplicates().dropna().sort_values()

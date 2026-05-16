@@ -57,7 +57,8 @@ def convert_markdown(path_md: Path | str, keep_docx=True, resume=False, pagebrea
     P_docx = P_md.parent / f"{P_md.stem}"
     # P_docx = Path('data/_') / f"{P_md.stem}"
     if verbose:
-        print(f'Saving to {P_docx}.docx')
+        print(f'Reading: {P_docx}.md')
+        print(f'Saving: {P_docx}.docx')
     document.save(f'{P_docx}.docx')
     convert_pdf(document, P_docx, keep_docx=keep_docx)
 
@@ -265,6 +266,7 @@ if __name__ == "__main__":
     # P_resume = P_INTERIM / 'AW_Paypal_Resume.md'
     P_resume = P_INTERIM / 'AW_Resume.md'
     # P_resume = P_INTERIM / 'AW_Q2BI_Resume.md'
+    # P_resume = P_INTERIM / 'AW_Healthcare_Resume.md'
     # convert_resume(P_resume, keep_docx=False, pagebreak=False)
     convert_resume(P_resume, keep_docx=True, pagebreak=False)
     # convert_resume(P_resume, keep_docx=True, pagebreak=True)

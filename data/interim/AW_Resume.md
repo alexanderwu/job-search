@@ -1,6 +1,5 @@
 **Alexander Wu**
 alexander.wu7@gmail.com | 510-936-3258 | LinkedIn /in/alexanderwu7 | San Francisco Bay Area, CA | US Citizen
-<!-- alexander.wu7@gmail.com | 555-555-5555 | LinkedIn /in/alexanderwu7 | San Francisco Bay Area, CA | US Citizen -->
 
 **Data Scientist | AI Engineer**
 Full-stack Data Scientist and AI Engineer with 5+ years of experience delivering real-world insights and solutions end-to-end from ideation to deployment in the healthcare and technology sectors. Expansive skill set with a strong focus on AI, machine learning, and software engineering. Enthusiastic collaborator, working with stakeholders to support data-driven decision-making and partnering with cross-functional teams to productionize machine learning models. Passionate about solving real business challenges and delighting end users.
@@ -18,9 +17,8 @@ Full-stack Data Scientist and AI Engineer with 5+ years of experience delivering
 
 ## **EXPERIENCE**
 
-**Protein Design Technology**, Emeryville, CA	**January 2025 – Present**
+**Protein Design Technology**, Emeryville, CA	**January 2026 – Present**
 **Consultant (AI Engineer)**
-<!-- Implemented AI approaches for predicting antibody-antigen binding to save costs in drug discovery. -->
 As part of a startup, leveraged proprietary and public datasets to develop predictive AI models for antibody drug discovery.
 
 - Integrated antibody sequences from SAbDab (public dataset), phage display, and FACS (flow cytometry) data to create training and evaluation set for AI model
@@ -62,14 +60,6 @@ Designed and tested software applications to monitor and control aircraft system
 - Developed Java Swing GUI (Graphical User Interface) to monitor and control aircraft hardpoints and test in-flight dynamics, ultimately gaining approval from test pilot end-user
 - Verified correct implementation of Java GUI by using Wireshark to debug network packets sent and received by GUI
 - Engaged in Agile methodology (Jira) and testing (JUnit) to deploy software efficiently and reliably
-<!--  -->
-<!-- **ProDIGIQ**, Thousand Oaks, CA	**June 2016 – September 2016**
-<!-- **Software Engineer Intern** -->
-<!-- Built and customized web-based software solutions to streamline airport operations and data management. -->
-<!--  -->
-<!-- - Customized Ruby on Rails web application for four airports to digitize inspection forms, manage  leases, track wildlife incidents, and monitor flight delays -->
-<!-- - Highlighted tarmac delays in real-time with Ag-Grid and JavaScript, helping prevent million-dollar Federal Aviation Administration (FAA) fines for airlines -->
-<!-- - Designed SQL database schema and debugged data pipelines to ensure data accuracy and consistency --> -->
 
 ## **EDUCATION**
 
