@@ -1,4 +1,5 @@
 from functools import cache
+import glob
 import gzip
 import json
 from pathlib import Path
@@ -14,6 +15,7 @@ from lxml.etree import _Element as Element
 from lxml.etree import _ElementTree as ElementTree
 import lxml.html
 import pandas as pd
+import polars as pl
 import requests
 from tqdm import tqdm
 
@@ -44,6 +46,8 @@ DA_HEALTH = 'da-healthcare-awiifu1z'
 HEALTH = 'healthcare-9ierbt6f'
 BOARD_URL = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{HEALTH}.json'
 # BOARD_URL = f'{HIRING_CAFE}/{_NEXT_PREFIX}/b/{DS_CA}.json'
+GLOB_STR = "../data/interim/2026/05/**/*.json.gz"
+# glob_str = "../data/interim/2026/05/*/da-healthcare-awiifu1z/*.json.gz"
 
 
 def load_sitemap(sitemap=SITEMAP_LOCATIONS, overwrite=False, verbose=True):
@@ -469,6 +473,196 @@ def write_data(P_dict: Path, data: dict | str, verbose=True):
     P_dict.parent.mkdir(parents=True, exist_ok=True)
     with gzip.open(P_dict, "wt", encoding="utf-8") as f:
         json.dump(jobs_dict, f)
+
+
+@cache
+def load_json_gz(glob_str=GLOB_STR, metadata=False):
+    json_gz_paths = sorted([Path(path) for path in glob.glob(glob_str, recursive=True)])
+    try:
+        pl_df = pl.read_ndjson(json_gz_paths)
+        _pageProps = pl_df['pageProps'].to_pandas()
+    # except pl.ComputeError:
+    except Exception:
+        json_gz_list = []
+        for P_json_gz in tqdm(json_gz_paths):
+            json_gz_list.append(_json_gz_df := pd.read_json(P_json_gz, lines=True, compression='gzip'))
+        pl_df = pd.concat(json_gz_list)
+        _pageProps = pl_df['pageProps']
+
+    json_gz_df = pd.DataFrame({
+        'hits': _pageProps.str['hits'],
+    })
+    if metadata:
+        json_gz_df['st_mtime'] = pd.to_datetime([p.stat().st_mtime for p in json_gz_paths], unit='s'),
+        json_gz_df['st_size'] = [p.stat().st_size for p in json_gz_paths],
+
+    df = json_gz_df.explode('hits')
+    job = df['hits']
+    job_info = job.str['job_information']
+    v5_processed = job.str['v5_processed_job_data']
+    v5_company_data = job.str['v5_processed_company_data'].apply(lambda x: x if isinstance(x, dict) else {})
+    company_data = job.str['enriched_company_data']
+
+    df['requisition_id'] = job.str['requisition_id']
+    df['job_id'] = job.str['id']
+    df['board_token'] = job.str['board_token']
+    df['source'] = job.str['source']
+    df['apply_url'] = job.str['apply_url']
+    df['collapse_key'] = job.str['collapse_key']
+    df['is_expired'] = job.str['is_expired']
+
+    # Job information
+    df['title'] = job_info.str['title']
+    df['job_title_raw'] = job_info.str['job_title_raw']
+    df['description'] = job_info.str['description']
+    df['core_job_title'] = v5_processed.str['core_job_title']
+    df['requirements_summary'] = v5_processed.str['requirements_summary']
+
+    # Structured data
+    df['technical_tools'] = v5_processed.str['technical_tools']
+    df['licenses_certifications'] = v5_processed.str['licenses_or_certifications']
+    df['role_activities'] = v5_processed.str['role_activities']
+    df['language_requirements'] = v5_processed.str['language_requirements']
+
+    # Degree requirements
+    df['associates_degree_requirement'] = v5_processed.str['associates_degree_requirement']
+    df['associates_degree_fields'] = v5_processed.str['associates_degree_fields_of_study']
+    df['bachelors_degree_requirement'] = v5_processed.str['bachelors_degree_requirement']
+    df['bachelors_degree_fields'] = v5_processed.str['bachelors_degree_fields_of_study']
+    df['masters_degree_requirement'] = v5_processed.str['masters_degree_requirement']
+    df['masters_degree_fields'] = v5_processed.str['masters_degree_fields_of_study']
+    df['doctorate_degree_requirement'] = v5_processed.str['doctorate_degree_requirement']
+    df['doctorate_degree_fields'] = v5_processed.str['doctorate_degree_fields_of_study']
+    df['is_high_school_required'] = v5_processed.str['is_high_school_required']
+
+    # Experience requirements
+    df['min_industry_role_yoe'] = v5_processed.str['min_industry_and_role_yoe']
+    df['is_min_industry_role_yoe_not_mentioned'] = v5_processed.str['is_min_industry_and_role_yoe_not_mentioned']
+    df['min_management_leadership_yoe'] = v5_processed.str['min_management_and_leadership_yoe']
+    df['is_min_management_leadership_yoe_not_mentioned'] = v5_processed.str['is_min_management_and_leadership_yoe_not_mentioned']
+
+    # Role details
+    df['job_category'] = v5_processed.str['job_category']
+    df['commitment'] = v5_processed.str['commitment']
+    df['role_type'] = v5_processed.str['role_type']
+    df['seniority_level'] = v5_processed.str['seniority_level']
+
+    # Workplace
+    df['workplace_type'] = v5_processed.str['workplace_type']
+    df['workplace_physical_environment'] = v5_processed.str['workplace_physical_environment']
+    df['formatted_workplace_location'] = v5_processed.str['formatted_workplace_location']
+    df['is_workplace_worldwide_ok'] = v5_processed.str['is_workplace_worldwide_ok']
+    df['workplace_cities'] = v5_processed.str['workplace_cities']
+    df['workplace_counties'] = v5_processed.str['workplace_counties']
+    df['workplace_states'] = v5_processed.str['workplace_states']
+    df['workplace_countries'] = v5_processed.str['workplace_countries']
+    df['workplace_continents'] = v5_processed.str['workplace_continents']
+    df['boundless_workplace_states'] = v5_processed.str['boundless_workplace_states']
+    df['boundless_workplace_countries'] = v5_processed.str['boundless_workplace_countries']
+    df['boundless_workplace_continents'] = v5_processed.str['boundless_workplace_continents']
+    df['number_of_workplace_cities'] = v5_processed.str['number_of_workplace_cities']
+    df['number_of_workplace_counties'] = v5_processed.str['number_of_workplace_counties']
+    df['number_of_workplace_states'] = v5_processed.str['number_of_workplace_states']
+    df['number_of_workplace_countries'] = v5_processed.str['number_of_workplace_countries']
+    df['number_of_workplace_continents'] = v5_processed.str['number_of_workplace_continents']
+
+    # Work conditions
+    df['oral_communication_level'] = v5_processed.str['oral_communication_level']
+    df['physical_labor_intensity'] = v5_processed.str['physical_labor_intensity']
+    df['physical_position'] = v5_processed.str['physical_position']
+    df['computer_usage'] = v5_processed.str['computer_usage']
+    df['cognitive_demand'] = v5_processed.str['cognitive_demand']
+    df['air_travel_requirement'] = v5_processed.str['air_travel_requirement']
+    df['land_travel_requirement'] = v5_processed.str['land_travel_requirement']
+    df['morning_shift_work'] = v5_processed.str['morning_shift_work']
+    df['evening_shift_work'] = v5_processed.str['evening_shift_work']
+    df['overnight_work'] = v5_processed.str['overnight_work']
+    df['on_call_requirement'] = v5_processed.str['on_call_requirement']
+    df['weekend_availability_required'] = v5_processed.str['weekend_availability_required']
+    df['holiday_availability_required'] = v5_processed.str['holiday_availability_required']
+    df['overtime_required'] = v5_processed.str['overtime_required']
+
+    # Compensation
+    df['yearly_min_compensation'] = v5_processed.str['yearly_min_compensation']
+    df['yearly_max_compensation'] = v5_processed.str['yearly_max_compensation']
+    df['monthly_min_compensation'] = v5_processed.str['monthly_min_compensation']
+    df['monthly_max_compensation'] = v5_processed.str['monthly_max_compensation']
+    df['weekly_min_compensation'] = v5_processed.str['weekly_min_compensation']
+    df['weekly_max_compensation'] = v5_processed.str['weekly_max_compensation']
+    df['hourly_min_compensation'] = v5_processed.str['hourly_min_compensation']
+    df['hourly_max_compensation'] = v5_processed.str['hourly_max_compensation']
+    df['biweekly_min_compensation'] = v5_processed.str['bi-weekly_min_compensation']
+    df['biweekly_max_compensation'] = v5_processed.str['bi-weekly_max_compensation']
+    df['daily_min_compensation'] = v5_processed.str['daily_min_compensation']
+    df['daily_max_compensation'] = v5_processed.str['daily_max_compensation']
+    df['is_compensation_transparent'] = v5_processed.str['is_compensation_transparent']
+    df['listed_compensation_currency'] = v5_processed.str['listed_compensation_currency']
+    df['listed_compensation_frequency'] = v5_processed.str['listed_compensation_frequency']
+
+    # Benefits
+    df['four_oh_one_k_matching'] = v5_processed.str['401k_matching']
+    df['generous_paid_time_off'] = v5_processed.str['generous_paid_time_off']
+    df['four_day_work_week'] = v5_processed.str['four_day_work_week']
+    df['tuition_reimbursement'] = v5_processed.str['tuition_reimbursement']
+    df['retirement_plan'] = v5_processed.str['retirement_plan']
+    df['generous_parental_leave'] = v5_processed.str['generous_parental_leave']
+    df['fair_chance'] = v5_processed.str['fair_chance']
+    df['visa_sponsorship'] = v5_processed.str['visa_sponsorship']
+    df['relocation_assistance'] = v5_processed.str['relocation_assistance']
+    df['military_veterans'] = v5_processed.str['military_veterans']
+
+    # Other
+    df['security_clearance'] = v5_processed.str['security_clearance']
+    df['is_driver_license_required'] = v5_processed.str['is_driver_license_required']
+    df['position_employer_type'] = v5_processed.str['position_employer_type']
+    df['company_sector_and_industry'] = v5_processed.str['company_sector_and_industry']
+
+    # Dates
+    _estimated_publish_date = v5_processed.str['estimated_publish_date']
+    # if isinstance(_estimated_publish_date, int):
+    #     _estimated_publish_date = datetime.fromtimestamp(_estimated_publish_date / 1000)
+    df['estimated_publish_date'] = _estimated_publish_date
+    df['estimated_publish_date_millis'] = v5_processed.str['estimated_publish_date_millis']
+
+    _v5_is_public = v5_company_data.str['is_public']
+    # _v5_org_type = {True: 'Public', False: 'Private'}.get(_v5_is_public)
+    # if v5_company_data.get('is_non_profit'):
+    #     _v5_org_type = 'Non-Profit'
+    _v5_org_type = _v5_is_public.map({True: 'Public', False: 'Private'})
+    _v5_org_type.loc[v5_company_data.str['is_non_profit'].astype(bool)] = 'Non-Profit'
+
+    df = pd.concat([df,
+        # User interactions
+        job_info.str['hiddenFromUsers'].rename('hiddenFromUsers'),
+        job_info.str['viewedByUsers'].rename('viewedByUsers'),
+        job_info.str['applied_from_users'].rename('applied_from_users'),
+
+        # Enriched Company data (embedded)
+        company_data.str['enriched_at'].rename('company_enriched_at'),
+        company_data.str['status'].rename('company_status'),
+        company_data.str['name'].fillna(v5_processed.str['company_name']).fillna(v5_company_data.str['name']).rename('company_name'),
+        company_data.str['homepage_uri'].fillna(v5_processed.str['company_website']).fillna(v5_company_data.str['website']).rename('company_homepage_uri'),
+        company_data.str['hq_country'].fillna(v5_company_data.str['headquarters_country']).rename('company_hq_country'),
+        company_data.str['parent_company'].fillna(v5_company_data.str['parent_company']).rename('company_parent_company'),
+        company_data.str['subsidiaries'].fillna(v5_company_data.str['subsidiaries']).rename('company_subsidiaries'),
+        company_data.str['industries'].fillna(v5_company_data.str['industries']).rename('company_industries'),
+        company_data.str['activities'].fillna(v5_processed.str['company_activities']).fillna(v5_company_data.str['activities']).rename('company_activities'),
+        company_data.str['nb_employees'].fillna(v5_company_data.str['number_employees'].astype(float)).rename('company_nb_employees'),
+        company_data.str['year_founded'].fillna(v5_company_data.str['year_founded'].astype(float)).rename('company_year_founded'),
+        company_data.str['tagline'].fillna(v5_processed.str['tagline']).fillna(v5_company_data.str['tagline']).rename('company_tagline'),
+        company_data.str['organization_type'].fillna(_v5_org_type).rename('company_organization_type'),
+        company_data.str['latest_funding_investors'].fillna(v5_company_data.str['investors']).rename('company_latest_funding_investors)'),
+        company_data.str['latest_funding_type'].fillna(v5_company_data.str['latest_funding_series']).rename('company_latest_funding_type'),
+        company_data.str['latest_funding_year'].fillna(v5_company_data.str['latest_funding_year'].astype(float)).rename('company_latest_funding_year'),
+        company_data.str['latest_funding_amount'].fillna(v5_company_data.str['latest_funding_amount'].astype(float)).rename('company_latest_funding_amount'),
+        company_data.str['stock_exchange'].fillna(v5_company_data.str['stock_exchange']).rename('company_stock_exchange'),
+        company_data.str['stock_symbol'].fillna(v5_company_data.str['stock_exchange']).rename('company_stock_symbol'),
+
+        # Extract location arrays
+        job.str['_geoloc'].apply(lambda x: x if isinstance(x, list) else []).apply(lambda x_list: [x.get('lon') for x in x_list] if not isinstance(x_list, float) else []).rename('location_longitudes'),
+        job.str['_geoloc'].apply(lambda x: x if isinstance(x, list) else []).apply(lambda x_list: [x.get('lat') for x in x_list] if not isinstance(x_list, float) else []).rename('location_latitudes'),
+    ], axis=1).drop(columns='hits').reset_index(drop=True)
+    return df
 
 
 if __name__ == "__main__":
