@@ -15,6 +15,7 @@ P_RESUME = P_RAW / "AW_Resume.md"
 
 HIRING_CAFE_HTTPS = "https://hiring.cafe"
 VIEW_JOB_HTTPS = "https://hiring.cafe/viewjob/"
+JOB_HTTPS = "https://hiring.cafe/job/"
 QUERY_LIST: list[str] = [
     DS_NORCAL := "DS_NorCal",
     DS_HEALTH := "DS_Healthcare",

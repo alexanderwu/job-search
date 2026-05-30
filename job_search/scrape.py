@@ -27,7 +27,8 @@ USER_AGENT_106 = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like 
 HIRING_CAFE = "https://hiring.cafe"
 HIRING_CAFE_ = "https://hiring.cafe/"
 # _NEXT_PREFIX = "_next/data/KHL6pwrRx0qXfmkGIviUb"
-_NEXT_PREFIX = "_next/data/PRlr0EYHY0knKhCjzqWrK"
+# _NEXT_PREFIX = "_next/data/PRlr0EYHY0knKhCjzqWrK"
+_NEXT_PREFIX = "_next/data/4OWCbV9KgPKQeRgIAG4NI"
 _now = now(time=False, days=0)
 # _now = '2026-04-20'
 P_raw_date = P_RAW / _now.replace('-', '/')
@@ -485,7 +486,8 @@ def load_json_gz(glob_str=GLOB_STR, metadata=False):
     except Exception:
         json_gz_list = []
         for P_json_gz in tqdm(json_gz_paths):
-            json_gz_list.append(_json_gz_df := pd.read_json(P_json_gz, lines=True, compression='gzip'))
+            _json_gz_df = pd.read_json(P_json_gz, lines=True, compression='gzip')
+            json_gz_list.append(_json_gz_df)
         pl_df = pd.concat(json_gz_list)
         _pageProps = pl_df['pageProps']
 
@@ -493,8 +495,8 @@ def load_json_gz(glob_str=GLOB_STR, metadata=False):
         'hits': _pageProps.str['hits'],
     })
     if metadata:
-        json_gz_df['st_mtime'] = pd.to_datetime([p.stat().st_mtime for p in json_gz_paths], unit='s'),
-        json_gz_df['st_size'] = [p.stat().st_size for p in json_gz_paths],
+        json_gz_df['st_mtime'] = pd.to_datetime([p.stat().st_mtime for p in json_gz_paths], unit='s')
+        json_gz_df['st_size'] = [p.stat().st_size for p in json_gz_paths]
 
     df = json_gz_df.explode('hits')
     job = df['hits']
@@ -505,7 +507,7 @@ def load_json_gz(glob_str=GLOB_STR, metadata=False):
 
     df['requisition_id'] = job.str['requisition_id']
     df['job_id'] = job.str['id']
-    df['board_token'] = job.str['board_token']
+    df['board_token'] = job.str['board_token'].astype(str)
     df['source'] = job.str['source']
     df['apply_url'] = job.str['apply_url']
     df['collapse_key'] = job.str['collapse_key']
@@ -646,7 +648,7 @@ def load_json_gz(glob_str=GLOB_STR, metadata=False):
         company_data.str['parent_company'].fillna(v5_company_data.str['parent_company']).rename('company_parent_company'),
         company_data.str['subsidiaries'].fillna(v5_company_data.str['subsidiaries']).rename('company_subsidiaries'),
         company_data.str['industries'].fillna(v5_company_data.str['industries']).rename('company_industries'),
-        company_data.str['activities'].fillna(v5_processed.str['company_activities']).fillna(v5_company_data.str['activities']).rename('company_activities'),
+        company_data.str['activities'].fillna(v5_processed.str['company_activities']).fillna(v5_company_data.str['activities']).apply(lambda x: x if isinstance(x, list) else []).rename('company_activities'),
         company_data.str['nb_employees'].fillna(v5_company_data.str['number_employees'].astype(float)).rename('company_nb_employees'),
         company_data.str['year_founded'].fillna(v5_company_data.str['year_founded'].astype(float)).rename('company_year_founded'),
         company_data.str['tagline'].fillna(v5_processed.str['tagline']).fillna(v5_company_data.str['tagline']).rename('company_tagline'),

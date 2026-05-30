@@ -9,10 +9,11 @@ from markdownify import markdownify as md
 import pandas as pd
 
 from job_search.ai import llm_extract
-from job_search.config import DS_HEALTH, DS_NORCAL, P_CACHE, P_PROCESSED, P_ROOT, VIEW_JOB_HTTPS
+from job_search.config import DS_HEALTH, DS_NORCAL, P_CACHE, P_PROCESSED, P_ROOT
 from job_search.dataset import load_jdf
 from job_search.utils import paths_df
 
+JOB_HTTPS = "https://hiring.cafe/job/"
 COLS = ['company_name', 'title', 'estimated_publish_date', 'requirements_summary',
         'job_category', 'workplace_type', 'formatted_workplace_location',
         'technical_tools', 'role_activities', 'description',
@@ -42,7 +43,7 @@ def load_jobs(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
                 jobs_df = con.table("jobs").df()
 
             jobs_df['_md'] = jobs_df['description'].map(md)
-            jobs_df['_url'] = VIEW_JOB_HTTPS + jobs_df['requisition_id']
+            jobs_df['_url'] = JOB_HTTPS + jobs_df['requisition_id']
             jobs_df['_hash'] = jobs_df['requisition_id']
 
             P_parquet.parent.mkdir(exist_ok=True)
@@ -53,6 +54,7 @@ def load_jobs(db='jobs.duckdb', clean=True, overwrite=False) -> pd.DataFrame:
 
     if clean:
         jobs_df = jobs_df.dropna(how='all')
+        jobs_df['estimated_publish_date'] = jobs_df['estimated_publish_date'].pipe(pd.to_datetime, format='mixed')
         # jobs_df['estimated_publish_date'] = jobs_df['estimated_publish_date'].dt.tz_localize('UTC')
         sf_remote_mask = jobs_df['formatted_workplace_location'].str.contains('San Francisco|San Jose', case=False)
         jobs_df['norcal'] = _norcal_mask(jobs_df) | sf_remote_mask
@@ -152,7 +154,7 @@ def display_text_mask(keywords, job_ii=1, job_df=None, llm=False):
     if any(_mask):
         _mask_df = job_df[_mask]
         _mask_hash = _mask_df['_hash'].iloc[ii]
-        print(f'{job_ii} of {_mask.sum()}: ' + VIEW_JOB_HTTPS + _mask_hash)
+        print(f'{job_ii} of {_mask.sum()}: ' + JOB_HTTPS + _mask_hash)
 
         display_job(_mask_hash, job_df=job_df, llm=llm)
     else:
@@ -175,7 +177,7 @@ def disp(jobs_df=None, mask=None, ii=0, llm=False, **kwargs):
     if any(mask):
         mask_df = jobs_df[mask]
         mask_hash = mask_df['_hash'].iloc[ii]
-        print(f'{job_ii} of {mask.sum()}: ' + VIEW_JOB_HTTPS + mask_hash)
+        print(f'{job_ii} of {mask.sum()}: ' + JOB_HTTPS + mask_hash)
 
         display_job(mask_hash, job_df=jobs_df, llm=llm)
     else:
@@ -191,7 +193,7 @@ def display_cmask(keywords, job_ii=1, llm=False, jobs_df=None):
     if any(_mask):
         _mask_df = job_df[_mask]
         _mask_hash = _mask_df['_hash'].iloc[ii]
-        print(f'{job_ii} of {_mask.sum()}: ' + VIEW_JOB_HTTPS + _mask_hash)
+        print(f'{job_ii} of {_mask.sum()}: ' + JOB_HTTPS + _mask_hash)
 
         display_job(_mask_hash, job_df=job_df, llm=llm)
     else:

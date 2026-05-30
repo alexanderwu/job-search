@@ -58,7 +58,8 @@ def disp(jobs_df=ALL_DB, mask=None, ii=0, llm=False, **kwargs):
     if any(mask):
         mask_df = jobs_df[mask].sort_values("estimated_publish_date", ascending=False).reset_index(drop=True)
         mask_hash = mask_df['_hash'].iloc[ii]
-        write(f'{job_ii} of {mask.sum()}: ' + jb.VIEW_JOB_HTTPS + mask_hash)
+        # write(f'{job_ii} of {mask.sum()}: ' + jb.VIEW_JOB_HTTPS + mask_hash)
+        write(f'{job_ii} of {mask.sum()}: ' + jb.JOB_HTTPS + mask_hash)
 
         display_job(mask_hash, job_df=jobs_df, llm=llm)
     else:
@@ -75,7 +76,10 @@ def date_ago(date, prefix="Posted ", badge=True):
     from datetime import datetime
     import platform
     date_str = strftime(date)
-    ago = datetime.now() - date
+    try:
+        ago = datetime.now() - date
+    except TypeError:
+        ago = datetime.now(TZ_LA) - date
     ago_str = f"{prefix}{ago.days}d ago"
     if ago.days < 1:
         ago_str = f"{prefix}{ago.seconds // 3600}hr ago"
