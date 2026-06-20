@@ -161,6 +161,8 @@ def display_text_mask(keywords, job_ii=1, job_df=None, llm=False):
         print(f'No match for: {keywords}')
 
 def disp(jobs_df=None, mask=None, ii=0, llm=False, **kwargs):
+    import st
+    st.write(jobs_df.head())
     jobs_df = load_jobs(jobs_df)
     if mask is None:
         mask = pd.Series(True, index=jobs_df.index)

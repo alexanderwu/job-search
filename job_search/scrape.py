@@ -19,16 +19,14 @@ import polars as pl
 import requests
 from tqdm import tqdm
 
-from job_search.config import P_INTERIM, P_RAW
+from job_search.config import JOB_HTTPS, P_CACHE, P_INTERIM, P_RAW
 from job_search.dataset import init_driver
 from job_search.utils import now
 
 USER_AGENT_106 = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.37'
 HIRING_CAFE = "https://hiring.cafe"
 HIRING_CAFE_ = "https://hiring.cafe/"
-# _NEXT_PREFIX = "_next/data/KHL6pwrRx0qXfmkGIviUb"
-# _NEXT_PREFIX = "_next/data/PRlr0EYHY0knKhCjzqWrK"
-_NEXT_PREFIX = "_next/data/4OWCbV9KgPKQeRgIAG4NI"
+_NEXT_PREFIX = "_next/data/Y5wB5FGA9Jitjh36pXVgD"
 _now = now(time=False, days=0)
 # _now = '2026-04-20'
 P_raw_date = P_RAW / _now.replace('-', '/')
@@ -239,23 +237,12 @@ def load_loc(loc='san-jose-california', overwrite=False, verbose=True, proxy=Fal
     P_locs_json = P_interim_date / f'locations/{loc}/page{page}.json.gz'
     if P_locs_json.exists() and not overwrite:
         jobs_dict = read_data(P_locs_json, verbose=verbose)
-        # if verbose:
-        #     print('Reading:', P_locs_json)
-        # with gzip.open(P_locs_json, "rt", encoding='utf-8') as f:
-        #     jobs_dict = json.load(f)
     else:
         # _suffix = f'?jobTitle={loc}&location=united-states'
         loc_json_url = f'{HIRING_CAFE_}{_NEXT_PREFIX}/jobs/locations/{loc}.json'
         loc_json = request_get(loc_json_url, proxy=proxy)
 
         write_data(P_locs_json, loc_json, verbose=verbose)
-        # if verbose:
-        #     print('Saving:', P_locs_json)
-        # P_locs_json.parent.mkdir(parents=True, exist_ok=True)
-        # with gzip.open(P_locs_json, "wt", encoding="utf-8") as f:
-        #     jobs_dict = json.loads(loc_json)
-        #     json.dump(jobs_dict, f)
-
     return jobs_dict
 
 def load_locs(loc='albany-california', overwrite=False, verbose=True, proxy=False, page=0) -> dict:
@@ -271,13 +258,6 @@ def load_locs(loc='albany-california', overwrite=False, verbose=True, proxy=Fals
         loc_json = request_get(loc_json_url, proxy=proxy)
 
         write_data(P_locs_json, loc_json, verbose=verbose)
-        # if verbose:
-        #     print('Saving:', P_locs_json)
-        # P_locs_json.parent.mkdir(parents=True, exist_ok=True)
-        # with gzip.open(P_locs_json, "wt", encoding="utf-8") as f:
-        #     jobs_dict = json.loads(loc_json)
-        #     json.dump(jobs_dict, f)
-
     try:
         if not jobs_dict['pageProps']['ssrIsLastPage']:
             sleep(0.2, 0.5)
@@ -666,6 +646,39 @@ def load_json_gz(glob_str=GLOB_STR, metadata=False):
     ], axis=1).drop(columns='hits').reset_index(drop=True)
     return df
 
+def save_hash(_hash, driver=None):
+    P_url = P_CACHE / 'url' / f'{_hash}.html'
+    P_json = P_CACHE / 'json' / f'{_hash}.json.gz'
+    if P_url.exists():
+        return
+
+    url = JOB_HTTPS + _hash
+    # print(url)
+
+    # url_get_content = selenium_get(url, driver=driver)
+    try:
+        url_get_content = requests_get(url)
+    except Exception:
+        if driver is None:
+            driver = init_driver()
+        url_get_content = selenium_get(url, driver=driver)
+
+    root = lxml.html.fromstring(url_get_content)
+    _next_data_list = root.xpath("//script[@id='__NEXT_DATA__']")
+    if len(_next_data_list) == 0:
+        jobs_dict = {}
+        print(url)
+        return
+    else:
+        _next_data = root.xpath("//script[@id='__NEXT_DATA__']")[0]
+        jobs_dict = json.loads(_next_data.text_content())
+        jobs_dict = jobs_dict.get('props', jobs_dict)
+
+    write_data(P_json, jobs_dict)
+    with open(P_url, "w", encoding="utf-8") as f:
+        f.write(url_get_content)
+    sleep(0.2, 0.5)
+
 
 if __name__ == "__main__":
     from itertools import chain
@@ -677,6 +690,7 @@ if __name__ == "__main__":
     LOAD_LOCATIONS = False
     LOAD_COMPANIES = False
     PAGES = 2
+    # PAGES = 100
 
     if LOAD_SITEMAPS:
         load_sitemap(SITEMAP_COMPANIES)
@@ -730,6 +744,7 @@ if __name__ == "__main__":
     da_health_boards_list = load_boards(DA_HEALTH, verbose=True, pages=PAGES, driver=driver)
     ds_sf_boards_list = load_boards(DS_SF, verbose=True, pages=PAGES, driver=driver)
     da_sf_boards_list = load_boards(DA_SF, verbose=True, pages=PAGES, driver=driver)
+    driver.quit()#
 
     if LOAD_COMPANIES:
         boards_list = [*health_boards_list, *da_health_boards_list, *ds_sf_boards_list, *da_sf_boards_list]
@@ -750,3 +765,16 @@ if __name__ == "__main__":
             load_company(f'{company}', verbose=False)
             sleep(0.2, 0.5)
             # pbar.set_description(company)
+
+    ii = 0
+    for board in [*health_boards_list, *da_health_boards_list, *ds_sf_boards_list, *da_sf_boards_list]:
+        for hit in board['pageProps']['hits']:
+            print(ii, _hash := hit['requisition_id'])
+            save_hash(_hash)
+            ii += 1
+
+    # all_df = pd.read_parquet(P_CACHE / 'ALL.parquet')
+    # for i, _hash in enumerate(all_df['requisition_id']):
+    #     print(i, ii, _hash)
+    #     save_hash(_hash)
+    #     ii += 1

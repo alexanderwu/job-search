@@ -53,6 +53,7 @@ SCROLL_PAUSE_TIME = 0.5
 WAIT_TIME = 10
 
 
+@cache
 def init_driver(headless=True, proxy=False):
     from seleniumbase import Driver
 

@@ -157,11 +157,14 @@ def display_hash(_hash, job_df=ALL_DB, verbose=True):
     jobs_df = load_jobs(job_df)
     _row = jobs_df.query(f'requisition_id == "{_hash}"')
     _md = _row['_md'].iloc[0]
-    _technical_tools = _row['technical_tools'].iloc[0]
-    _replace_list = [*_technical_tools, 'AI']
-    for tool in _replace_list:
-        _md = re.sub(rf"\b{tool}\b", f'<span style="color: mediumpurple">{tool}</span>', _md)
-    return _display_md(_md, verbose=verbose)
+    if _md:
+        _technical_tools = _row['technical_tools'].iloc[0]
+        _replace_list = [*_technical_tools, 'AI']
+        for tool in _replace_list:
+            _md = re.sub(rf"\b{tool}\b", f'<span style="color: mediumpurple">{tool}</span>', _md)
+        return _display_md(_md, verbose=verbose)
+    else:
+        return st.text("No description.")
 
 ################################################################################
 
