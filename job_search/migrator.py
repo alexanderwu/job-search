@@ -7,7 +7,6 @@ Supports incremental updates by tracking processed files.
 # ruff: noqa: F541
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 import duckdb
 
@@ -219,7 +218,7 @@ class JobMigrator:
             except Exception:
                 pass  # Index may already exist
 
-    def _extract_jobs(self, data: Dict[str, Any], mtime=None) -> list[Optional[Dict[str, Any]]]:
+    def _extract_jobs(self, data, mtime=None):
         """Extract list of job data from file."""
         try:
             job_data = data['props']['pageProps']['job']
@@ -229,7 +228,7 @@ class JobMigrator:
             jobs = [self._extract_job(job_data, mtime) for job_data in hits]
         return jobs
 
-    def _extract_job(self, data: Dict[str, Any], mtime=None) -> Optional[Dict[str, Any]]:
+    def _extract_job(self, data, mtime=None):
         """Extract all job data from pickle file into a single record."""
         # job = data.get('props', {}).get('pageProps', {}).get('job', {})
         try:
@@ -430,7 +429,7 @@ class JobMigrator:
             [str(file_path), requisition_id]
         )
 
-    def _insert_job(self, job: Dict[str, Any]):
+    def _insert_job(self, job):
         """Insert or update job record."""
         self.conn.execute("""
             INSERT INTO jobs VALUES (
@@ -532,7 +531,7 @@ class JobMigrator:
             print(f"Error processing {file_path}: {e}")
             return 0
 
-    def migrate_all(self, skip_processed: bool = True) -> Dict[str, int]:
+    def migrate_all(self, skip_processed: bool = True):
         """Migrate all pickle files in the data directory."""
         stats = {'jobs': 0, 'processed': 0, 'skipped': 0, 'errors': 0}
 
@@ -581,7 +580,7 @@ class JobMigrator:
 
         return stats
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self):
         """Get database statistics."""
         return {
             'total_jobs': self.conn.sql("SELECT COUNT(*) FROM jobs").fetchone()[0],
@@ -597,7 +596,7 @@ class JobMigrator:
 
 def main():
     """Main migration script."""
-    # ruff: noqa: F401
+    # ruff: noqa: PLR2044
     # import sys
 
     from job_search.scrape import DA_HEALTH, DA_SF, DS_SF, HEALTH, P_interim_date

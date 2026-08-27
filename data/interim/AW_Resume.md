@@ -17,7 +17,7 @@ Full-stack Data Scientist and AI Engineer with 5+ years of experience delivering
 
 ## **EXPERIENCE**
 
-**Protein Design Technology**, Emeryville, CA	**January 2026 – Present**
+**Protein Design Technology**, Emeryville, CA	**Februrary 2026 – July 2026**
 **Consultant (AI Engineer)**
 As part of a startup, leveraged proprietary and public datasets to develop predictive AI models for antibody drug discovery.
 

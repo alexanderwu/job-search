@@ -24,9 +24,11 @@ from job_search.dataset import init_driver
 from job_search.utils import now
 
 USER_AGENT_106 = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.37'
-HIRING_CAFE = "https://hiring.cafe"
-HIRING_CAFE_ = "https://hiring.cafe/"
-_NEXT_PREFIX = "_next/data/Y5wB5FGA9Jitjh36pXVgD"
+# HIRING_CAFE = "https://hiring.cafe"
+# HIRING_CAFE_ = "https://hiring.cafe/"
+HIRING_CAFE = "https://hiringcafe.com"
+HIRING_CAFE_ = "https://hiringcafe.com/"
+_NEXT_PREFIX = "_next/data/LOt8DTEJBSrF5OQpbAbdg"
 _now = now(time=False, days=0)
 # _now = '2026-04-20'
 P_raw_date = P_RAW / _now.replace('-', '/')
@@ -680,6 +682,7 @@ def save_hash(_hash, driver=None):
     sleep(0.2, 0.5)
 
 
+
 if __name__ == "__main__":
     from itertools import chain
 
@@ -689,14 +692,15 @@ if __name__ == "__main__":
     LOAD_TITLES = False
     LOAD_LOCATIONS = False
     LOAD_COMPANIES = False
-    PAGES = 2
+    PAGES = 5
     # PAGES = 100
 
     if LOAD_SITEMAPS:
-        load_sitemap(SITEMAP_COMPANIES)
-        load_sitemap(SITEMAP_LOCATIONS)
-        load_sitemap(SITEMAP_JOB_TITLES)
-        load_sitemap(SITEMAP_INDEX)
+        load_sitemap('jobs-sitemap')
+        # load_sitemap(SITEMAP_COMPANIES)
+        # load_sitemap(SITEMAP_LOCATIONS)
+        # load_sitemap(SITEMAP_JOB_TITLES)
+        # load_sitemap(SITEMAP_INDEX)
 
     if LOAD_TITLES:
         ds_job_titles = load_ds_job_titles()
@@ -732,7 +736,7 @@ if __name__ == "__main__":
                 continue
 
             print(ii, loc)
-            load_locs(f'{loc}', verbose=False, proxy=True)
+            load_locs(f'{loc}', verbose=False, proxy=False)
             sleep(0.2, 0.5)
             pbar.set_description(loc)
     ################################################################################
@@ -766,10 +770,12 @@ if __name__ == "__main__":
             sleep(0.2, 0.5)
             # pbar.set_description(company)
 
-    ii = 0
-    for board in [*health_boards_list, *da_health_boards_list, *ds_sf_boards_list, *da_sf_boards_list]:
+    ii = 1
+    _boards = [*health_boards_list, *da_health_boards_list, *ds_sf_boards_list, *da_sf_boards_list]
+    N = sum([len(b['pageProps']['hits']) for b in _boards])
+    for board in _boards:
         for hit in board['pageProps']['hits']:
-            print(ii, _hash := hit['requisition_id'])
+            print(ii, 'of', N, _hash := hit['requisition_id'])
             save_hash(_hash)
             ii += 1
 

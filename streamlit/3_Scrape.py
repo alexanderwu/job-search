@@ -4,7 +4,11 @@ import time
 import streamlit as st
 
 import job_search.scrape as sc
-from job_search.scrape import DS_SF, HEALTH, P_interim_date
+from job_search.scrape import DS_SF, HEALTH, P_CACHE, P_interim_date
+
+P_json = P_CACHE / 'json'
+json_list = [p for p in P_json.glob("*.json.gz")]
+st.write(len(json_list))
 
 'Starting a long computation...'
 
@@ -13,10 +17,23 @@ latest_iteration = st.empty()
 bar = st.progress(0)
 
 if st.button("Click to start"):
-    for i in range(100):
-        # Update the progress bar with each iteration.
-        latest_iteration.text(f'Iteration {i+1}')
-        bar.progress(i + 1)
+    SEARCHES = [sc.HEALTH, sc.DA_HEALTH, sc.DS_SF, sc.DA_SF]
+    PAGES = 3
+    ii = 0
+    for i, search in enumerate(SEARCHES):
+        driver = sc.init_driver(headless=False)
+        boards_list = sc.load_boards(search, verbose=True, pages=PAGES, driver=driver)
+        driver.quit()
+
+        for board in boards_list:
+            for hit in enumerate(board['pageProps']['hits']):
+                # st.write(ii, _hash := hit[1]['requisition_id'])
+                latest_iteration.text(_hash := hit[1]['requisition_id'])
+                sc.save_hash(_hash)
+                ii += 1
+                # Update the progress bar with each iteration.
+                latest_iteration.text(f'Iteration {ii}')
+        bar.progress(100*(i+1) // len(SEARCHES))
         time.sleep(0.1)
 
     '...and now we\'re done!'

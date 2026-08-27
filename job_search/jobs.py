@@ -339,7 +339,7 @@ def _cmask(keywords, contains=True, case=None, col=COL, jobs_df=None):
         keywords = tuple(k.lower() for k in keywords)
 
     def _set_match(x_list, case):
-        x_set = set([x.lower() for x in x_list]) if case else set(x_list)
+        x_set = {x.lower() for x in x_list} if case else set(x_list)
         return bool(set(keywords) & x_set)
 
     jobs_df_col = jobs_df[col].apply(lambda x: [x] if isinstance(x, str) else x)
