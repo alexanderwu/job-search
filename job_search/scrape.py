@@ -28,7 +28,7 @@ USER_AGENT_106 = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like 
 # HIRING_CAFE_ = "https://hiring.cafe/"
 HIRING_CAFE = "https://hiringcafe.com"
 HIRING_CAFE_ = "https://hiringcafe.com/"
-_NEXT_PREFIX = "_next/data/LOt8DTEJBSrF5OQpbAbdg"
+_NEXT_PREFIX = "_next/data/UiNY3DniHUEpbt0-TVyEJ"
 _now = now(time=False, days=0)
 # _now = '2026-04-20'
 P_raw_date = P_RAW / _now.replace('-', '/')
